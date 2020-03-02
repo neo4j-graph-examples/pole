@@ -40,4 +40,5 @@ This is for version: {target-db-version}
 Required plugins: {use-plugin}
 
 unrendered guide: {guide}
+
 rendered guide available from: {rendered-guide}
