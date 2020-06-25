@@ -1,5 +1,6 @@
+:repo: https://github.com/neo4j-graph-examples/pole
 //name of the graph example
-:name: POLE
+:name: pole
 :long_name: Crime Investigation
 //graph example description
 :description: Explore connections in crime data using the POLE - Person, Object, Location, Event - model in a public dataset from Manchester, U.K.
@@ -9,12 +10,12 @@
 :tags: pole, crime investigation, crime detection
 //graph example author
 :author: Joe Depeau
-//use a script to generate/process data? Set to either path for script, or false if not used
+//use a script to generate/process data? Set to either path for script, or nothing if not used
 :use-load-script: false
-//use a graph dump file for initial data set? Set to either path for dump file, or false if not used
+//use a graph dump file for initial data set? Set to either path for dump file, or nothing if not used
 :use-dump-file: data/pole.dump
 //use a plugin for the database, separate multiple plugins with comma. 'public' plugins are apoc, graph-algorithms. 
-//other algorithms are specified by path, e.g. apoc,graph-algorithms; Set to false if not used
+//other algorithms are specified by path, e.g. apoc,graph-algorithms; Set to nothing if not used
 :use-plugin: graph-algorithms
 //target version of the database this example should run on
 :target-db-version: 3.5.14
@@ -25,20 +26,51 @@
 //rendered guide - will remove later
 :rendered-guide: https://guides.neo4j.com/sandbox/pole/index.html
 //guide for modelling decisions. Should be friendly enough to be converted into various document formats
-:model-guide:
+:model-guide: false
 
-image::{icon}[]
+image::{repo}/raw/master/{icon}[width=100]
 
-= {long_name} Graph Example
+== {long_name} Graph Example ({name})
 
 Description: {description}
 
 === Setup
 
-This is for version: {target-db-version}
+This is for Neo4j version: {target-db-version}
 
 Required plugins: {use-plugin}
 
-unrendered guide: {guide}
+Rendered guide available via: `:play {rendered-guide}`
 
-rendered guide available from: {rendered-guide}
+Download the zip file link:{repo}/raw/master/{name}.zip[{name}.zip] and add it as "project from file" to https://neo4j.com/developer/neo4j-desktop[Neo4j Desktop^].
+
+Load graph data via
+
+ifeval::[{use-dump-file} != false]
+[source,shell,subs=attributes]
+----
+bin/neo4j-admin load --from {use-dump-file} [--database <database>]
+----
+
+Or upload dump file to Neo4j Aura via https://console.neo4j.io/#import-instructions
+
+endif::[]
+
+ifeval::[{use-load-script} != false]
+
+[source,shell,subs=attributes]
+----
+bin/cypher-shell -u neo4j -p <password> -f {use-load-script} [-d <database>]
+----
+
+Or import in Neo4j Browser by dragging or pasting the content of {use-load-script}.
+
+endif::[]
+
+=== Feedback
+
+Repository: {repo}
+
+GitHub Issues: {repo}/issues
+
+Browser Guide Source: link:{repo}/tree/master/{guide}[{guide}]
