@@ -13,7 +13,7 @@
 //use a script to generate/process data? Set to either path for script, or nothing if not used
 :use-load-script: false
 //use a graph dump file for initial data set? Set to either path for dump file, or nothing if not used
-:use-dump-file: data/pole.dump
+:use-dump-file: data/pole-40.dump
 //use a plugin for the database, separate multiple plugins with comma. 'public' plugins are apoc, graph-algorithms. 
 //other algorithms are specified by path, e.g. apoc,graph-algorithms; Set to nothing if not used
 :use-plugin: graph-algorithms

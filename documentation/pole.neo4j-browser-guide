@@ -1,0 +1,865 @@
+<style type="text/css" media="screen">
+/*
+.nodes-image {
+	margin:-100;
+}
+*/	
+@import url("//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css");
+
+.imageblock .content img, .image img {max-width: 900px;max-height: 300px;}
+.deck h3, .deck h4 {display: block !important;margin-bottom:8px;margin-top:5px;}
+.listingblock {margin:8px;}
+.pull-bottom {position:relative;bottom:1em;}
+.admonitionblock td.icon [class^="fa icon-"]{font-size:2.5em;text-shadow:1px 1px 2px rgba(0,0,0,.5);cursor:default}
+.admonitionblock td.icon .icon-note:before{content:"\f05a";color:#19407c}
+.admonitionblock td.icon .icon-tip:before{content:"\f0eb";text-shadow:1px 1px 2px rgba(155,155,0,.8);color:#111}
+.admonitionblock td.icon .icon-warning:before{content:"\f071";color:#bf6900}
+.admonitionblock td.icon .icon-caution:before{content:"\f06d";color:#bf3400}
+.admonitionblock td.icon .icon-important:before{content:"\f06a";color:#bf0000}
+.admonitionblock.note.speaker { display:none; }
+</style>
+<style type="text/css" media="screen">
+/* #editor.maximize-editor .CodeMirror-code { font-size:24px; line-height:26px; } */
+</style>
+<article class="guide" ng-controller="AdLibDataController">
+  <carousel class="deck container-fluid">
+    <!--slide class="row-fluid">
+      <div class="col-sm-3">
+        <h3>POLE Data Model Guide</h3>
+        <p class="lead">Information</p>
+			<!dl>
+				
+				
+				
+				
+				
+			</dl>
+		</div>
+      <div class="col-sm-9">
+        <figure>
+          <img style="width:300px" src=""/>
+        </figure>
+      </div>
+    </slide-->
+    
+
+
+   <h4>POLE Data Model Guide</h4>
+   
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>POLE Model Overview</h3>
+    <br/>
+    <div>
+      <div class="col-lg-6">
+<img src="http://guides.neo4j.com/sandbox/pole/img/pole_model_visual.jpeg" class="img-responsive">
+</div>
+<div class="col-lg-6">
+<div class="paragraph">
+<p>This guide will demonstrate how Neo4j can be used with a POLE data model in the context of police and child protection investigations.</p>
+</div>
+<div class="paragraph">
+<p>The POLE data model focuses on four basic types of entities and the relationships between them: <strong>P</strong>ersons, <strong>O</strong>bjects, <strong>L</strong>ocations, and <strong>E</strong>vents.</p>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>POLE Model Use Cases</h3>
+    <br/>
+    <div>
+      <div class="paragraph">
+<p>The POLE data model is a standard approach used in policing, investigative, and security use cases.  It can also, however, be applied in other areas.  Typical POLE use cases include:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Policing</p>
+</li>
+<li>
+<p>Counter Terrorism</p>
+</li>
+<li>
+<p>Border Control / Immigration</p>
+</li>
+<li>
+<p>Child Protection / Social Services</p>
+</li>
+<li>
+<p>Missing Persons</p>
+</li>
+<li>
+<p>Offender Rehabilitation</p>
+</li>
+<li>
+<p>Insurance Fraud Investigations</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Graphs are a perfect fit for use cases like these, where it is important to be able to work with highly connected data in real time.  Using a real-time graph helps investigators to be <em>proactive</em> and prevent crime or other incidents, rather than simply being reactive after an incident has occurred.  A POLE graph can also be used to generate insights into patterns of behaviour and incidents, which can inform new approaches and enable more targeted use of limited resources.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>About the data for this demo</h3>
+    <br/>
+    <div>
+      <div class="paragraph">
+<p>Crime data for this demo was downloaded from public sources (<a href="http://data.gov.uk" class="bare">http://data.gov.uk</a>), and is freely provided for download with locations defined to the block or street level and crimes defined by month only (i.e. no day or timestamp).  This public crime data does not include any sort of information about persons related to crimes, not even as anonymised tokens - it supplies only crime and location data, or in other words only the 'L' and 'E' for the POLE model.  This demo uses street crime data for Greater Manchester, UK from August 2017.</p>
+</div>
+<div class="paragraph">
+<p>Unique crime IDs, longitude, latitude, crime type, street/locale name, and last outcome values were taken from the public street crime data files.  UK postcodes were retrieved from a public API using Longitude and Latitude, and randomly generated or curated data was used for other entities in the database (vehicles, officers, people, phone numbers, phone calls, emails, day of the month, etc.).</p>
+</div>
+<div class="paragraph">
+<p><em>All scenarios and persons portrayed in this demo are fictitious.  Any similarity to real persons or events is coincidental and unintentional.</em></p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>General Queries</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Schema</h4>
+   <div class="paragraph">
+<p>Review the metagraph, and see the types of nodes and relationships we&#8217;re going to be working with.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->call db.schema()<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Notice the different ways that Persons can be related to each other.  There is a general 'KNOWS' relationship, as well as more specific relationship types: FAMILY_REL (related to), KNOWS_LW (lives with), KNOWS_PHONE (has a related phone call), and KNOWS_SN (social network).</p>
+</div>
+<div class="paragraph">
+<p>Notice also that Location is associated to both Postcode and Area.  In the UK, Postcodes follow a format which splits the postcode into two sections - for example, M1 1AA.  In this example, 'M1 1AA' is the Postcode, and 'M1' is the area.  This allows us to group locations in different ways, and build query paths that are either more specific (like Postcode, which is typically limited to a street or a few blocks) or more general (like Area, which could cover a town or city neighbourhood).</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>General Queries</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Crime totals</h4>
+   <div class="paragraph">
+<p>Let&#8217;s have a look at the types of crimes in the graph, and the number of times each occurred:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c:Crime)
+RETURN c.type AS crime_type, count(c) AS total
+ORDER BY count(c) DESC<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You should see that 'Violence and sexual offences' was the highest category of crimes for the month, with weapons offences being the category with the lowest count.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>General Queries</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Top locations for crimes</h4>
+   <div class="paragraph">
+<p>Let&#8217;s also look at the top locations in the graph where crimes have been recorded:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (l:Location)&lt;-[:OCCURRED_AT]-(:Crime)
+RETURN l.address AS address, l.postcode AS postcode, count(l) AS total
+ORDER BY count(l) DESC
+LIMIT 15<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You should see several obvious public places and institutions with high numbers of crime associated - Piccadilly (the area near the main rail station in Manchester), a Shopping Area (and a nearby Prison), etc.  There are some residential-looking addresses towards the bottom of the list with pretty high numbers (i.e. 35 crimes at both 182 Waterson Avenue and 43 Walker&#8217;s Croft).</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>General Queries</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Crimes near a particular address</h4>
+   <div class="paragraph">
+<p>The popular UK television drama 'Coronation Street' is set in a fictional Manchester-area neighbourhood.  There&#8217;s a Coronation Street address in the graph (1 Coronation Street, home of the Barlow family in the show).  Using the longitude and latitude properties in our Location nodes we can do a distance-based search to find crimes that are within 500 metres of this address.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (l:Location {address: '1 Coronation Street', postcode: 'M5 3RW'})
+WITH point(l) AS corrie
+MATCH (x:Location)-[:HAS_POSTCODE]-&gt;(p:PostCode),
+(x)&lt;-[:OCCURRED_AT]-(c:Crime)
+WITH x, p, c, distance(point(x), corrie) AS distance
+WHERE distance &lt; 500
+RETURN x.address AS address, p.code AS postcode, count(c) AS crime_total, collect(distinct(c.type)) AS crime_type, distance
+ORDER BY distance
+LIMIT 10<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>General Queries</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Crimes investigated by Inspector Morse</h4>
+   <div class="paragraph">
+<p>Another popular UK television drama is 'Inspector Morse'.  There&#8217;s also an Inspector Morse in our graph - let&#8217;s see what Crimes he is investigating.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (o:Officer {rank: 'Chief Inspector', surname: 'Morse'})&lt;-[i:INVESTIGATED_BY]-(c:Crime)
+RETURN *<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You should see quite a number of Crime nodes connected by the INVESTIGATED_BY relationship to the Inspector Morse node.  Take a few minutes to click on some of them to expand the graph and see what other nodes are related to some of these Crimes.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Crime Investigation</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Crimes under investigation by Officer Larive</h4>
+   <div class="paragraph">
+<p>Let&#8217;s say we are interested in the crimes that are under investigation by Police Constable Devy Larive (Badge Number 26-5234182).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c:Crime {last_outcome: 'Under investigation'})-[i:INVESTIGATED_BY]-&gt;(o:Officer {badge_no: '26-5234182', surname: 'Larive'})
+return *<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can see Police Constable Larive is investigating a number of crimes at the moment.  In particular we can see that PC Larive is investigating three Drugs Crimes.  Double clicking on these three Drugs crimes shows us:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Two of them are for the charge Possession of Cannabis with Intent To Supply, occurring at the same address and having the same related person (Jack Powell).  These crimes have evidence attached to them - large amounts of currency, some cannabis, and an electronic scale (all indicators of cannabis sale/distribution).</p>
+</li>
+<li>
+<p>The third Crime is for the charge 'Production of Cannabis with Intent To Supply', related to Raymond Walker.  This crime also has two Evidence nodes attached.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>We could click on these nodes and manually explore the graph to get more information, but instead let&#8217;s write some queries which can help us investigate further.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Crime Investigation</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Shortest path between persons related to crimes</h4>
+   <div class="paragraph">
+<p>Let&#8217;s see if the two Persons - Jack Powell and Raymond Walker - associated with these three Drugs Crimes are somehow connected in the graph.  We&#8217;ll look for all of the shortest paths between them of 3 or fewer hops along all types of 'KNOWS' relationships.  We can ignore the direction of the relationships in this query, as we&#8217;re not interested in which direction they point.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (c:Crime {last_outcome: 'Under investigation', type: 'Drugs'})-[:INVESTIGATED_BY]-&gt;(:Officer {badge_no: '26-5234182'}),
+(c)&lt;-[:PARTY_TO]-(p:Person)
+WITH COLLECT(p) AS persons
+UNWIND persons AS p1
+UNWIND persons AS p2
+WITH * WHERE id(p1) &lt; id(p2)
+MATCH path = allshortestpaths((p1)-[:KNOWS|KNOWS_LW|KNOWS_SN|FAMILY_REL|KNOWS_PHONE*..3]-(p2))
+RETURN path<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It turns out they are part of what looks like a social group.  Two of Raymond&#8217;s family relations (his father Phillip and sister Kathleen) know Alan Ward, who is the brother of Jack Powell.  Raymond&#8217;s father Phillip also lives with Jack&#8217;s father Brian.  Knowing that Raymond is under investigation for production of cannabis, that Jack is under investigation for two separate charges of possession of cannabis with intent to supply, and that they seem to be part of a social group we can speculate it&#8217;s possible that they know each other and that Jack is getting his cannabis from Raymond.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Crime Investigation</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Other related people associated with drugs crimes</h4>
+   <div class="paragraph">
+<p>To build an even stronger case let&#8217;s look at the social networks of Jack Powell and Raymond Walker, and see if anyone else within 3 hops of them along 'KNOWS' relationships is also related to a Drugs Crime.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH path = (:Officer {badge_no: '26-5234182'})&lt;-[:INVESTIGATED_BY]-(:Crime {type: 'Drugs'})&lt;-[:PARTY_TO]-(:Person)-[:KNOWS*..3]-(:Person)-[:PARTY_TO]-&gt;(:Crime {type: 'Drugs'})
+RETURN path<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This query reveals an interesting and somewhat dense social network, including family relations and people who live with one another.  Reviewing the graph we can see:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Jack is also under investigation (by different officers) for two other Drugs Crimes.  PC Larive might want to try to get information on those cases, too.</p>
+</li>
+<li>
+<p>Jack’s father Brian is related to three Drugs Crimes - each time charged with Possession of Cannabis.</p>
+</li>
+<li>
+<p>Within 3 hops of both Raymond and Jack is Diana Murray, who is related to three Drugs Crimes - one of simple possession and two with intent to supply.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>It&#8217;s possible that Raymond has been growing cannabis and supplying it to Jack and Diana, both of whom are then dealing it onward.  Take a few minutes to explore the relationships and understand how Raymond, Jack, and Diana may know each other.</p>
+</div>
+<div class="paragraph">
+<p>We might also be able to infer some additional relationships in this graph:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Given that Kathleen and Phillip both know Alan, it is possible that Raymond knows Alan - even though that&#8217;s not explicit in the graph?</p>
+</li>
+<li>
+<p>Similarly, given that Alan and Brian know Phillip, is likely that Jack knows Phillip as well?</p>
+</li>
+</ul>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Vulnerable Persons Investigation</h3>
+    <br/>
+    <div>
+      <div class="paragraph">
+<p>Now we can explore a series of queries to simulate research on 'vulnerable' or 'at risk' individuals in the graph.  This might be especially important in a social services or child protection use case.  Here we have defined 'vulnerable person' as someone who is not themselves associated to a crime, but who knows many people who are.  Run the query below to generate a list of the Top 5 most vulnerable people in the graph.</p>
+</div>
+
+
+
+   <h4>Top 5 vulnerable people in the graph</h4>
+   <div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (p:Person)-[:KNOWS]-(friend)-[:PARTY_TO]-&gt;(:Crime)
+WHERE NOT (p:Person)-[:PARTY_TO]-&gt;(:Crime)
+RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, count(distinct friend) AS dangerousFriends
+ORDER BY dangerousFriends DESC
+LIMIT 5<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We will be referring to this list of Vulnerable people throughout the next few steps, so you may want to keep the results handy (try using the tack icon to pin them to the top).</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Vulnerable Persons Investigation</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Friends of Friends</h4>
+   <div class="paragraph">
+<p>Using Cypher it&#8217;s then very easy to explore the graph out through a wider social circle.  A small change to the query allows us to see not only friends of individuals who are associated with crimes, but also 'friends of friends' who are associated with crimes as well.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (p:Person)-[:KNOWS*1..2]-(friend)-[:PARTY_TO]-&gt;(:Crime)
+WHERE NOT (p:Person)-[:PARTY_TO]-&gt;(:Crime)
+RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, count(distinct friend) AS dangerousFriends
+ORDER BY dangerousFriends DESC
+LIMIT 5<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Try modifying the query to look at 'friends of friends of friends' (3 'KNOWS' relationships out) and see how that changes the results.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Vulnerable Persons Investigation</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Exploring a Vulnerable Person&#8217;s graph</h4>
+   <div class="paragraph">
+<p>Let&#8217;s explore the graph for the top result from our original Vulnerable Persons results (which, hopefully, you&#8217;ve pinned in a previous step).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH path = (:Location)&lt;-[:CURRENT_ADDRESS]-(:Person {nhs_no: '804-54-6976', surname: 'Freeman'})-[:KNOWS]-(:Person)-[:PARTY_TO]-&gt;(:Crime)
+RETURN path<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can see that Anne Freeman has 8 dangerous friends.  Using her ID, this query shows us the graph of these friends, which we can navigate and explore.</p>
+</div>
+<div class="paragraph">
+<p>You can also try updating this query to show 'friends of friends' or 'friends of friends of friends' like we did previously.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Vulnerable Persons Investigation</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Looking for local Dangerous Friends</h4>
+   <div class="paragraph">
+<p>Now that we&#8217;ve seen Anne Freeman&#8217;s social circle, it would be good to know whether any of her dangerous friends is actually local to her (in her area, or neighbourhood).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (anne:Person {nhs_no: '804-54-6976', surname: 'Freeman'})-[k:KNOWS]-(friend)-[pt:PARTY_TO]-&gt;(c:Crime),
+(anne)-[ca1:CURRENT_ADDRESS]-&gt;(aAddress)-[lia1:LOCATION_IN_AREA]-&gt;(area),
+(friend)-[ca2:CURRENT_ADDRESS]-&gt;(fAddress)-[lia2:LOCATION_IN_AREA]-&gt;(area)
+RETURN *<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>We can see it&#8217;s only her friend Craig, who she knows through social networks, that lives in the same Area (SK1) as Anne.  Craig has been associated with two Public Order offences.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Vulnerable Persons Investigation</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Looking for connections between Vulnerable Persons</h4>
+   <div class="paragraph">
+<p>Going back to the list of vulnerable people, let&#8217;s see if any of them are connected.  This query takes the results of the vulnerable people query and looks for paths of 'KNOWS' relationships that connect them.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (p:Person)-[:KNOWS]-(friend)-[:PARTY_TO]-&gt;(:Crime)
+WHERE NOT (p:Person)-[:PARTY_TO]-&gt;(:Crime)
+WITH p, count(distinct friend) AS dangerousFriends
+ORDER BY dangerousFriends DESC
+LIMIT 5
+WITH COLLECT (p) AS people
+UNWIND people AS p1
+UNWIND people AS p2
+WITH * WHERE id(p1) &lt;&gt; id (p2)
+MATCH path = shortestpath((p1)-[:KNOWS*]-(p2))
+RETURN path<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>It turns out there are connections between them, of different lengths.  There are actually multiple paths by which some of them are connected.</p>
+</div>
+<div class="paragraph">
+<p>We&#8217;re finished now with the original list of vulnerable people and those results can be closed or unpinned.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Vulnerable Persons Investigation</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Looking for Dangerous Family Friends</h4>
+   <div class="paragraph">
+<p>We can now write another query looking for vulnerable or at risk individuals, but this time based on their family relationships rather than their direct social relationships.  We&#8217;ll look for people who are not directly related to a crime, and neither is their relative, but their relative has dangerous friends.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (p:Person)-[:FAMILY_REL]-(relative)-[:KNOWS]-(famFriend)-[:PARTY_TO]-&gt;(:Crime)
+WHERE NOT (p:Person)-[:PARTY_TO]-&gt;(:Crime) AND
+ NOT (relative)-[:PARTY_TO]-&gt;(:Crime)
+RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, count(DISTINCT famFriend) AS DangerousFamilyFriends
+ORDER BY DangerousFamilyFriends DESC
+LIMIT 5<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>You should see 5 people who have family members with dangerous friends.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Vulnerable Persons Investigation</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Looking for Dangerous Family Friends</h4>
+   <div class="paragraph">
+<p>The previous query returned a good set of at risk individuals.  However, it&#8217;s probably not specific enough - it would be more interesting to see this list with an additional requirement that the vulnerable individuals live with their relative who has dangerous friends.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (p:Person)-[:FAMILY_REL]-(relative)-[:KNOWS]-(famFriend)-[:PARTY_TO]-&gt;(:Crime),
+(p)-[:CURRENT_ADDRESS]-&gt;(:Location)&lt;-[:CURRENT_ADDRESS]-(relative)
+WHERE NOT (p:Person)-[:PARTY_TO]-&gt;(:Crime) AND
+ NOT (relative)-[:PARTY_TO]-&gt;(:Crime)
+RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, count(DISTINCT famFriend) AS DangerousFamilyFriends
+ORDER BY DangerousFamilyFriends DESC
+LIMIT 5<!--/code--></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This version of the query returns only 2 people, but the one with the highest number of dangerous family friends (Kimberly Alexander) is the same as from the results of the previous query.</p>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Vulnerable Persons Investigation</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Exploring a Vulnerable Person&#8217;s graph</h4>
+   <div class="paragraph">
+<p>We can view Kimberley&#8217;s graph, and see that Kimberly (age 12) lives with her mother Bonnie at 53 Ridge Grove.  Bonnie has several friends who are related to a number of crimes of varying types.  There&#8217;s a high chance that Kimberly is being exposed to these people, potentially putting her at risk.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH path = (relative:Person)-[:CURRENT_ADDRESS]-&gt;(:Location)&lt;-[:CURRENT_ADDRESS]-(:Person {nhs_no: '548-59-5017', surname: 'Alexander'})-[:FAMILY_REL]-(relative)-[:KNOWS]-(:Person)-[:PARTY_TO]-&gt;(:Crime)
+RETURN path<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Graph Algorithms</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Triangle Count</h4>
+   <div class="paragraph">
+<p>Lastly, we can have a look at a few graph algorithms and see how they can be applied to our use case.</p>
+</div>
+<div class="paragraph">
+<p>The triangle count algorithm returns 'triangles' of connected nodes - in this case, groups of three Persons where every node in the group 'KNOWS' the others ('A' knows 'B' knows 'C' knows 'A').  This is a common approach when analysing social graphs, where the incidence of such triangles is higher than it would be in a random data set/sample.  This identifies communities or clusters of connectivity in graphs, and might be used in a policing context to identify gangs or other criminal/suspected groups.</p>
+</div>
+<div class="paragraph">
+<p>Run the following query to identify Person nodes in our graph who are members of the highest number of triangles.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL algo.triangleCount.stream('Person', 'KNOWS', {concurrency:4})
+YIELD nodeId, triangles
+MATCH (p:Person)
+WHERE ID(p) = nodeId AND
+triangles &gt; 0
+RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, triangles
+ORDER BY triangles DESC
+LIMIT 10;<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Algorithms</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Triangle Count</h4>
+   <div class="paragraph">
+<p>We can take a look at the graph for one of the sets of triangles that was returned - Deborah Ford, who belongs to ten triangles.</p>
+</div>
+<div class="paragraph">
+<p>We can see that Patricia Carr knows both Deborah Ford and Jonathan Hunt, and both Deborah and Jonathan know Peter Bryant, Harry Lopez, and Phillip Perry.  We can might therefore infer that Patricia knows Peter, Harry, and Phillip as well.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH path = (p1:Person {nhs_no: '838-45-9343', surname: 'Ford'})-[:KNOWS]-(p2)-[:KNOWS]-(p3)-[:KNOWS]-(p1)
+RETURN path<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Algorithms</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Triangle Count on a Subgraph</h4>
+   <div class="paragraph">
+<p>The previous query was interesting, but we ran it against the entire graph.  We can use the same algorithm on a sub-graph - for instance, only people who associated with crimes.  This returns a different set of triangles, consisting only of people associated with crimes who appear in communities/clusters.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL algo.triangleCount.stream('MATCH (p:Person)-[:PARTY_TO]-&gt;(c:Crime) RETURN id(p) AS id', 'MATCH (p1:Person)-[:KNOWS]-(p2:Person) RETURN id(p1) AS source, id(p2) AS target', {concurrency:4, graph:'cypher'})
+YIELD nodeId, triangles
+MATCH (p:Person)
+WHERE ID(p) = nodeId AND
+triangles &gt; 0
+RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, triangles
+ORDER BY triangles DESC
+LIMIT 5;<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Algorithms</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Triangle Count on a Subgraph</h4>
+   <div class="paragraph">
+<p>Looking at the triangles associated to one of the top results from the previous query (Phillip Williamson) shows an interesting group of people who know each other, are related to each other, and/or live with each other.  The names look familiar from our previous Drugs investigation - we have quite a group of potential criminals here.  In addition to the Drugs Crimes there are a lot of Vehicle Crimes associated with this social group.  Perhaps this is a gang which specialises in car theft.  It&#8217;s interesting to note how the algorithms automatically turned up something we needed to specifically search for earlier (during our Drugs search we had specific Officer and Person starting nodes from our search).</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (p1:Person {nhs_no: '337-28-4424', surname: 'Williamson'})-[k1:KNOWS]-(p2)-[k2:KNOWS]-(p3)-[k3:KNOWS]-(p1)
+WITH *
+MATCH (person)-[pt:PARTY_TO]-&gt;(crime) WHERE person IN[p1, p2, p3]
+RETURN *<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Algorithms</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Betweenness Centrality</h4>
+   <div class="paragraph">
+<p>The betweenness algorithm measures centrality in the graph - a way of identifying the most important nodes in a graph.  It does this by identifying nodes which sit on the shortest path between many other nodes and scoring them more highly.  We can see the people here which are potentially important in the graph by using this measure - they sit on the shortest path between the most other people via the 'KNOWS' relationship (ignoring relationships direction, as it&#8217;s not very important here).  Information and resources tend to flow along the shortest paths in a graph, so this is one good way of identifying central nodes or 'bridge' nodes between communities in the graph.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL algo.betweenness.stream('Person', 'KNOWS', {direction: 'both'})
+YIELD nodeId, centrality
+MATCH (p:Person)
+WHERE ID(p) = nodeId
+RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, toInt(centrality) AS score
+ORDER BY centrality DESC
+LIMIT 10;<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>Algorithms</h3>
+    <br/>
+    <div>
+      
+
+
+   <h4>Betweenness Centrality</h4>
+   <div class="paragraph">
+<p>We can explore the graph for the top result from the previous query (Annie Duncan) out to 3 levels and see how well connected she is.  She does appear to sit between several clusters/communities at the edge of this graph.  We get even more results if we look farther out than 3 hops, but the results would be harder to visualise and take longer to draw on the screen.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH path = (:Person {nhs_no: '863-96-9468', surname: 'Duncan'})-[:KNOWS*..3]-(:Person)
+RETURN path<!--/code--></pre>
+</div>
+</div>
+	</div>
+  </div>
+</slide>
+
+
+
+<slide class="row-fluid">
+  <div class="col-sm-12">
+    <h3>End of the guide</h3>
+    <br/>
+    <div>
+      <div class="paragraph">
+<p>This was a simplified demo, and a real POLE model populated with actual police data would be much more complicated and rich.  However, this was a good way to explore some POLE data modelling and queries in a semi-real world way.</p>
+</div>
+<div class="paragraph">
+<p>To make the demo easier to follow we used 'NHS Number' as simulated unique identifier for Person nodes, though of course in a real-life scenario we probably wouldn&#8217;t have one consistent identifier and instead would query the graph using a wide range of identifiers, matching criteria, query methods, etc.</p>
+</div>
+<div class="paragraph">
+<p>Some examples of additional complexity we might add in a real-world scenario would be:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Using 'Personas' instead of 'People', to account for things like aliases.</p>
+</li>
+<li>
+<p>A richer set of relationships between Persons and Crimes (i.e. Witness To, Victim Of, Suspected Of, Convicted Of)</p>
+</li>
+<li>
+<p>Supporting traceability and auditing of data.  In real life it&#8217;s very important to understand the lineage of the data, and how we could prove we have the right to hold that information (i.e. was it discovered as part of an investigation, is it publicly available, is it part of another document or related to another case, who entered the information and when, who has updated it, has it been verified, etc.).</p>
+</li>
+<li>
+<p>Adding a robust security mechanism, to limit access to data to only those who have the right authorisation.</p>
+</li>
+<li>
+<p>Use weighting for our searches and algorithms - for example, some crimes might be considered more dangerous than others (i.e. Violence and Sexual Offences is more serious than Shoplifting), or some relationships might be considered more reliable or closer (i.e 'Family' or 'Lives With' could be weighted more than 'Social Network')</p>
+</li>
+<li>
+<p>Add More data!  Neo4j is designed to handle massive graph workloads, which you would expect to see in a real-world POLE data set.</p>
+</li>
+</ul>
+</div>
+	</div>
+  </div>
+</slide>
+  </carousel>
+</article>
