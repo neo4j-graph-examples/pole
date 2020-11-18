@@ -53,7 +53,7 @@ Rendered guide available from: `:play pole`
 
 Unrendered guide: link:{guide}[]
 
-Data files: `{data}`
+Data files: `{use-dump-file}`
 
 Zip file: download data/{name}.zip[{name}.zip] and add it as "project from file" to https://neo4j.com/developer/neo4j-desktop[Neo4j Desktop^].
 
