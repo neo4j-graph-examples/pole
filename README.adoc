@@ -1,76 +1,66 @@
-:repo: https://github.com/neo4j-graph-examples/pole
-//name of the graph example
 :name: pole
 :long_name: Crime Investigation
-//graph example description
 :description: Explore connections in crime data using the POLE - Person, Object, Location, Event - model in a public dataset from Manchester, U.K.
-//icon representing graph example
-:icon: resources/pole-icon.png
-//associated search tags, separate multiple tags with comma
-:tags: pole, crime investigation, crime detection
-//graph example author
+:icon:
+:logo: documentation/img/pole-icon.png
+:tags: example-data,dataset,crime-data,pole,crime-investigation,crime-detection
 :author: Joe Depeau
-//use a script to generate/process data? Set to either path for script, or nothing if not used
-:use-load-script: false
-//use a graph dump file for initial data set? Set to either path for dump file, or nothing if not used
+:use-load-script:
+:data:
 :use-dump-file: data/pole-40.dump
-//use a plugin for the database, separate multiple plugins with comma. 'public' plugins are apoc, graph-algorithms. 
-//other algorithms are specified by path, e.g. apoc,graph-algorithms; Set to nothing if not used
 :use-plugin: graph-algorithms
-//target version of the database this example should run on
 :target-db-version: 3.5.14
-//specify a Bloom perspective, or false if not used
-:bloom-perspective: false
-//guide for the graph example. Should be friendly enough to be converted into various document formats
-:guide: documentation/pole_guide.adoc
-//rendered guide - will remove later
+:bloom-perspective: bloom/pole.bloom-perspective
+:guide: documentation/pole.neo4j-browser-guide
 :rendered-guide: https://guides.neo4j.com/sandbox/pole/index.html
-//guide for modelling decisions. Should be friendly enough to be converted into various document formats
-:model-guide: false
+:model: documentation/img/model.jpeg
+:example: documentation/img/example.png
 
-image::{repo}/raw/master/{icon}[width=100]
+:query: MATCH (l:Location {address:$address})<-[r:OCCURRED_AT]-(c:Crime) +
+RETURN c.date as crimeDate +
+
+:param-name: address
+:param-value: Piccadilly
+:result-column: crimeDate
+:expected-result: 31/08/2017
+
+:model-guide:
+:todo: 
+image::{logo}[width=200]
 
 == {long_name} Graph Example ({name})
 
-Description: {description}
+Description: _{description}_
+
+.Model
+image::{model}[]
+
+.Example
+image::{example}[width=600]
+
+.Example Query:
+[source,cypher,subs=attributes]
+----
+{query}
+----
 
 === Setup
 
-This is for Neo4j version: {target-db-version}
+This is for Neo4j version: `{target-db-version}`
 
-Required plugins: {use-plugin}
+Rendered guide available from: `:play pole` 
+// or `:play {rendered-guide}``
 
-Rendered guide available via: `:play {rendered-guide}`
+Unrendered guide: link:{guide}[]
 
-Download the zip file link:{repo}/raw/master/{name}.zip[{name}.zip] and add it as "project from file" to https://neo4j.com/developer/neo4j-desktop[Neo4j Desktop^].
+Data files: `{data}`
 
-Load graph data via
+Zip file: download data/{name}.zip[{name}.zip] and add it as "project from file" to https://neo4j.com/developer/neo4j-desktop[Neo4j Desktop^].
 
-ifeval::[{use-dump-file} != false]
-[source,shell,subs=attributes]
-----
-bin/neo4j-admin load --from {use-dump-file} [--database <database>]
-----
+=== Code Examples
 
-Or upload dump file to Neo4j Aura via https://console.neo4j.io/#import-instructions
-
-endif::[]
-
-ifeval::[{use-load-script} != false]
-
-[source,shell,subs=attributes]
-----
-bin/cypher-shell -u neo4j -p <password> -f {use-load-script} [-d <database>]
-----
-
-Or import in Neo4j Browser by dragging or pasting the content of {use-load-script}.
-
-endif::[]
-
-=== Feedback
-
-Repository: {repo}
-
-GitHub Issues: {repo}/issues
-
-Browser Guide Source: link:{repo}/tree/master/{guide}[{guide}]
+* link:code/javascript/example.js[JavaScript]
+* link:code/java/Example.java[Java]
+* link:code/csharp/Example.cs[C#]
+* link:code/python/example.py[Python]
+* link:code/go/example.go[Go]
