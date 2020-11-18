@@ -55,7 +55,7 @@ Unrendered guide: link:{guide}[]
 
 Data files: `{use-dump-file}`
 
-Zip file: download the data/{name}.zip and add it as "project from file" to https://neo4j.com/developer/neo4j-desktop[Neo4j Desktop^].
+Zip file: download the link:data/{name}.zip[{name}.zip] and add it as "project from file" to https://neo4j.com/developer/neo4j-desktop[Neo4j Desktop^].
 
 === Code Examples
 
