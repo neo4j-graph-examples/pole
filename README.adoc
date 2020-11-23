@@ -1,5 +1,5 @@
 :name: pole
-:long_name: Crime Investigation
+:long-name: Crime Investigation
 :description: Explore connections in crime data using the POLE - Person, Object, Location, Event - model in a public dataset from Manchester, U.K.
 :icon:
 :logo: documentation/img/pole-icon.png
@@ -28,7 +28,7 @@ RETURN c.date as crimeDate +
 :todo: 
 image::{logo}[width=100]
 
-== {long_name} Graph Example ({name})
+== {long-name} Graph Example ({name})
 
 Description: _{description}_
 
