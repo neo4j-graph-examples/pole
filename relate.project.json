@@ -1,7 +1,7 @@
 {
     "name": "pole",
     "description":"Explore connections in crime data using the POLE - Person, Object, Location, Event - model in a public dataset from Manchester, U.K.",
-    "install": [
+    "dbms": [
         {
             "dumpFile": "data/pole-35.dump",
             "targetNeo4jVersion":"3.5"
