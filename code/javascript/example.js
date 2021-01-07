@@ -7,7 +7,7 @@ const driver = neo4j.driver('bolt://<HOST>:<BOLTPORT>',
 
 const query =
   `
-  MATCH (l:Location {address:$address})<-[r:OCCURRED_AT]-(c:Crime)
+  MATCH (l:Location {address:$address})<-[r:OCCURRED_AT]-(c:Crime) 
   RETURN c.date as crimeDate
   `;
 
