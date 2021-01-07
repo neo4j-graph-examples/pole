@@ -18,7 +18,7 @@ namespace dotnet {
 
     var cypherQuery =
       @"
-      MATCH (l:Location {address:$address})<-[r:OCCURRED_AT]-(c:Crime)
+      MATCH (l:Location {address:$address})<-[r:OCCURRED_AT]-(c:Crime) 
       RETURN c.date as crimeDate
       ";
 
