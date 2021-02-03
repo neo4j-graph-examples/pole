@@ -64,7 +64,7 @@ __All scenarios and persons portrayed in this demo are fictitious.  Any similari
 Review the metagraph, and see the types of nodes and relationships we're going to be working with. 
 
 [source,cypher]
-call db.schema()
+call db.schema.visualization()
  
 Notice the different ways that Persons can be related to each other.  There is a general 'KNOWS' relationship, as well as more specific relationship types: FAMILY_REL (related to), KNOWS_LW (lives with), KNOWS_PHONE (has a related phone call), and KNOWS_SN (social network).
 
