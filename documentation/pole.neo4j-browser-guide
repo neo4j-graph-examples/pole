@@ -64,7 +64,9 @@ __All scenarios and persons portrayed in this demo are fictitious.  Any similari
 Review the metagraph, and see the types of nodes and relationships we're going to be working with. 
 
 [source,cypher]
-call db.schema()
+----
+call db.schema.visualization()
+----
  
 Notice the different ways that Persons can be related to each other.  There is a general 'KNOWS' relationship, as well as more specific relationship types: FAMILY_REL (related to), KNOWS_LW (lives with), KNOWS_PHONE (has a related phone call), and KNOWS_SN (social network).
 
@@ -74,10 +76,13 @@ Notice also that Location is associated to both Postcode and Area.  In the UK, P
 === Crime totals
 
 Let's have a look at the types of crimes in the graph, and the number of times each occurred: 
+
 [source,cypher]
+----
 MATCH (c:Crime)
 RETURN c.type AS crime_type, count(c) AS total
 ORDER BY count(c) DESC
+----
 
 You should see that 'Violence and sexual offences' was the highest category of crimes for the month, with weapons offences being the category with the lowest count.
 
@@ -87,10 +92,12 @@ You should see that 'Violence and sexual offences' was the highest category of c
 Let's also look at the top locations in the graph where crimes have been recorded:
 
 [source,cypher]
+----
 MATCH (l:Location)<-[:OCCURRED_AT]-(:Crime)
 RETURN l.address AS address, l.postcode AS postcode, count(l) AS total
 ORDER BY count(l) DESC 
 LIMIT 15
+----
 
 You should see several obvious public places and institutions with high numbers of crime associated - Piccadilly (the area near the main rail station in Manchester), a Shopping Area (and a nearby Prison), etc.  There are some residential-looking addresses towards the bottom of the list with pretty high numbers (i.e. 35 crimes at both 182 Waterson Avenue and 43 Walker's Croft).
 
@@ -99,6 +106,7 @@ You should see several obvious public places and institutions with high numbers 
 The popular UK television drama 'Coronation Street' is set in a fictional Manchester-area neighbourhood.  There's a Coronation Street address in the graph (1 Coronation Street, home of the Barlow family in the show).  Using the longitude and latitude properties in our Location nodes we can do a distance-based search to find crimes that are within 500 metres of this address.
 
 [source,cypher]
+----
 MATCH (l:Location {address: '1 Coronation Street', postcode: 'M5 3RW'})
 WITH point(l) AS corrie
 MATCH (x:Location)-[:HAS_POSTCODE]->(p:PostCode),
@@ -108,22 +116,31 @@ WHERE distance < 500
 RETURN x.address AS address, p.code AS postcode, count(c) AS crime_total, collect(distinct(c.type)) AS crime_type, distance
 ORDER BY distance
 LIMIT 10
+----
 
 == General Queries
 === Crimes investigated by Inspector Morse
+
 Another popular UK television drama is 'Inspector Morse'.  There's also an Inspector Morse in our graph - let's see what Crimes he is investigating.
+
 [source,cypher]
+----
 MATCH (o:Officer {rank: 'Chief Inspector', surname: 'Morse'})<-[i:INVESTIGATED_BY]-(c:Crime)
 RETURN *
+----
 
 You should see quite a number of Crime nodes connected by the INVESTIGATED_BY relationship to the Inspector Morse node.  Take a few minutes to click on some of them to expand the graph and see what other nodes are related to some of these Crimes.
 
 == Crime Investigation
 === Crimes under investigation by Officer Larive
+
 Let's say we are interested in the crimes that are under investigation by Police Constable Devy Larive (Badge Number 26-5234182).
+
 [source,cypher]
+----
 MATCH (c:Crime {last_outcome: 'Under investigation'})-[i:INVESTIGATED_BY]->(o:Officer {badge_no: '26-5234182', surname: 'Larive'})
 return *
+----
 
 We can see Police Constable Larive is investigating a number of crimes at the moment.  In particular we can see that PC Larive is investigating three Drugs Crimes.  Double clicking on these three Drugs crimes shows us:
 
@@ -138,6 +155,7 @@ We could click on these nodes and manually explore the graph to get more informa
 Let's see if the two Persons - Jack Powell and Raymond Walker - associated with these three Drugs Crimes are somehow connected in the graph.  We'll look for all of the shortest paths between them of 3 or fewer hops along all types of 'KNOWS' relationships.  We can ignore the direction of the relationships in this query, as we're not interested in which direction they point.
 
 [source,cypher]
+----
 MATCH (c:Crime {last_outcome: 'Under investigation', type: 'Drugs'})-[:INVESTIGATED_BY]->(:Officer {badge_no: '26-5234182'}),
 (c)<-[:PARTY_TO]-(p:Person)
 WITH COLLECT(p) AS persons
@@ -146,6 +164,7 @@ UNWIND persons AS p2
 WITH * WHERE id(p1) < id(p2)
 MATCH path = allshortestpaths((p1)-[:KNOWS|KNOWS_LW|KNOWS_SN|FAMILY_REL|KNOWS_PHONE*..3]-(p2))
 RETURN path
+----
 
 It turns out they are part of what looks like a social group.  Two of Raymond's family relations (his father Phillip and sister Kathleen) know Alan Ward, who is the brother of Jack Powell.  Raymond's father Phillip also lives with Jack's father Brian.  Knowing that Raymond is under investigation for production of cannabis, that Jack is under investigation for two separate charges of possession of cannabis with intent to supply, and that they seem to be part of a social group we can speculate it's possible that they know each other and that Jack is getting his cannabis from Raymond.
 
@@ -154,8 +173,10 @@ It turns out they are part of what looks like a social group.  Two of Raymond's 
 To build an even stronger case let's look at the social networks of Jack Powell and Raymond Walker, and see if anyone else within 3 hops of them along 'KNOWS' relationships is also related to a Drugs Crime.
 
 [source,cypher]
+----
 MATCH path = (:Officer {badge_no: '26-5234182'})<-[:INVESTIGATED_BY]-(:Crime {type: 'Drugs'})<-[:PARTY_TO]-(:Person)-[:KNOWS*..3]-(:Person)-[:PARTY_TO]->(:Crime {type: 'Drugs'})
 RETURN path
+----
 
 This query reveals an interesting and somewhat dense social network, including family relations and people who live with one another.  Reviewing the graph we can see:
 
@@ -179,12 +200,15 @@ We might also be able to infer some additional relationships in this graph:
 Now we can explore a series of queries to simulate research on 'vulnerable' or 'at risk' individuals in the graph.  This might be especially important in a social services or child protection use case.  Here we have defined 'vulnerable person' as someone who is not themselves associated to a crime, but who knows many people who are.  Run the query below to generate a list of the Top 5 most vulnerable people in the graph.
 
 === Top 5 vulnerable people in the graph 
+
 [source,cypher]
+----
 MATCH (p:Person)-[:KNOWS]-(friend)-[:PARTY_TO]->(:Crime)
 WHERE NOT (p:Person)-[:PARTY_TO]->(:Crime)
 RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, count(distinct friend) AS dangerousFriends
 ORDER BY dangerousFriends DESC
 LIMIT 5
+----
 
 We will be referring to this list of Vulnerable people throughout the next few steps, so you may want to keep the results handy (try using the tack icon to pin them to the top).
 
@@ -193,11 +217,13 @@ We will be referring to this list of Vulnerable people throughout the next few s
 Using Cypher it's then very easy to explore the graph out through a wider social circle.  A small change to the query allows us to see not only friends of individuals who are associated with crimes, but also 'friends of friends' who are associated with crimes as well.
 
 [source,cypher]
+----
 MATCH (p:Person)-[:KNOWS*1..2]-(friend)-[:PARTY_TO]->(:Crime)
 WHERE NOT (p:Person)-[:PARTY_TO]->(:Crime)
 RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, count(distinct friend) AS dangerousFriends
 ORDER BY dangerousFriends DESC
 LIMIT 5
+----
 
 Try modifying the query to look at 'friends of friends of friends' (3 'KNOWS' relationships out) and see how that changes the results.  
 
@@ -207,8 +233,10 @@ Try modifying the query to look at 'friends of friends of friends' (3 'KNOWS' re
 Let's explore the graph for the top result from our original Vulnerable Persons results (which, hopefully, you've pinned in a previous step).
 
 [source,cypher]
+----
 MATCH path = (:Location)<-[:CURRENT_ADDRESS]-(:Person {nhs_no: '804-54-6976', surname: 'Freeman'})-[:KNOWS]-(:Person)-[:PARTY_TO]->(:Crime)
 RETURN path
+----
 
 We can see that Anne Freeman has 8 dangerous friends.  Using her ID, this query shows us the graph of these friends, which we can navigate and explore.  
 
@@ -221,10 +249,12 @@ You can also try updating this query to show 'friends of friends' or 'friends of
 Now that we've seen Anne Freeman's social circle, it would be good to know whether any of her dangerous friends is actually local to her (in her area, or neighbourhood).
 
 [source,cypher]
+----
 MATCH (anne:Person {nhs_no: '804-54-6976', surname: 'Freeman'})-[k:KNOWS]-(friend)-[pt:PARTY_TO]->(c:Crime),
 (anne)-[ca1:CURRENT_ADDRESS]->(aAddress)-[lia1:LOCATION_IN_AREA]->(area),
 (friend)-[ca2:CURRENT_ADDRESS]->(fAddress)-[lia2:LOCATION_IN_AREA]->(area)
 RETURN *
+----
 
 
 We can see it's only her friend Craig, who she knows through social networks, that lives in the same Area (SK1) as Anne.  Craig has been associated with two Public Order offences.
@@ -234,6 +264,7 @@ We can see it's only her friend Craig, who she knows through social networks, th
 Going back to the list of vulnerable people, let's see if any of them are connected.  This query takes the results of the vulnerable people query and looks for paths of 'KNOWS' relationships that connect them.  
 
 [source,cypher]
+----
 MATCH (p:Person)-[:KNOWS]-(friend)-[:PARTY_TO]->(:Crime)
 WHERE NOT (p:Person)-[:PARTY_TO]->(:Crime)
 WITH p, count(distinct friend) AS dangerousFriends
@@ -245,6 +276,7 @@ UNWIND people AS p2
 WITH * WHERE id(p1) <> id (p2)
 MATCH path = shortestpath((p1)-[:KNOWS*]-(p2))
 RETURN path
+----
 
 It turns out there are connections between them, of different lengths.  There are actually multiple paths by which some of them are connected.
 
@@ -255,12 +287,14 @@ We're finished now with the original list of vulnerable people and those results
 We can now write another query looking for vulnerable or at risk individuals, but this time based on their family relationships rather than their direct social relationships.  We'll look for people who are not directly related to a crime, and neither is their relative, but their relative has dangerous friends.
 
 [source,cypher]
+----
 MATCH (p:Person)-[:FAMILY_REL]-(relative)-[:KNOWS]-(famFriend)-[:PARTY_TO]->(:Crime)
 WHERE NOT (p:Person)-[:PARTY_TO]->(:Crime) AND
  NOT (relative)-[:PARTY_TO]->(:Crime)
 RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, count(DISTINCT famFriend) AS DangerousFamilyFriends
 ORDER BY DangerousFamilyFriends DESC
 LIMIT 5
+----
 
 You should see 5 people who have family members with dangerous friends.
 
@@ -270,6 +304,7 @@ The previous query returned a good set of at risk individuals.  However, it's pr
 
 
 [source,cypher]
+----
 MATCH (p:Person)-[:FAMILY_REL]-(relative)-[:KNOWS]-(famFriend)-[:PARTY_TO]->(:Crime),
 (p)-[:CURRENT_ADDRESS]->(:Location)<-[:CURRENT_ADDRESS]-(relative)
 WHERE NOT (p:Person)-[:PARTY_TO]->(:Crime) AND
@@ -277,6 +312,7 @@ WHERE NOT (p:Person)-[:PARTY_TO]->(:Crime) AND
 RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, count(DISTINCT famFriend) AS DangerousFamilyFriends
 ORDER BY DangerousFamilyFriends DESC
 LIMIT 5
+----
 
 This version of the query returns only 2 people, but the one with the highest number of dangerous family friends (Kimberly Alexander) is the same as from the results of the previous query.
 
@@ -285,8 +321,10 @@ This version of the query returns only 2 people, but the one with the highest nu
 We can view Kimberley's graph, and see that Kimberly (age 12) lives with her mother Bonnie at 53 Ridge Grove.  Bonnie has several friends who are related to a number of crimes of varying types.  There's a high chance that Kimberly is being exposed to these people, potentially putting her at risk.
 
 [source,cypher]
+----
 MATCH path = (relative:Person)-[:CURRENT_ADDRESS]->(:Location)<-[:CURRENT_ADDRESS]-(:Person {nhs_no: '548-59-5017', surname: 'Alexander'})-[:FAMILY_REL]-(relative)-[:KNOWS]-(:Person)-[:PARTY_TO]->(:Crime)
 RETURN path
+----
 
 
 == Graph Algorithms
@@ -299,14 +337,16 @@ The triangle count algorithm returns 'triangles' of connected nodes - in this ca
 Run the following query to identify Person nodes in our graph who are members of the highest number of triangles.
 
 [source,cypher]
-CALL algo.triangleCount.stream('Person', 'KNOWS', {concurrency:4})
-YIELD nodeId, triangles
+----
+CALL gds.triangleCount.stream({nodeProjection:'Person', relationshipProjection:{KNOWS:{type:'KNOWS',orientation:'UNDIRECTED'}}})
+YIELD nodeId, triangleCount as triangles
 MATCH (p:Person)
 WHERE ID(p) = nodeId AND
 triangles > 0
 RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, triangles
 ORDER BY triangles DESC
 LIMIT 10;
+----
 
 == Algorithms
 === Triangle Count
@@ -315,8 +355,10 @@ We can take a look at the graph for one of the sets of triangles that was return
 We can see that Patricia Carr knows both Deborah Ford and Jonathan Hunt, and both Deborah and Jonathan know Peter Bryant, Harry Lopez, and Phillip Perry.  We can might therefore infer that Patricia knows Peter, Harry, and Phillip as well.
 
 [source,cypher]
+----
 MATCH path = (p1:Person {nhs_no: '838-45-9343', surname: 'Ford'})-[:KNOWS]-(p2)-[:KNOWS]-(p3)-[:KNOWS]-(p1)
 RETURN path
+----
 
 
 == Algorithms
@@ -324,14 +366,16 @@ RETURN path
 The previous query was interesting, but we ran it against the entire graph.  We can use the same algorithm on a sub-graph - for instance, only people who associated with crimes.  This returns a different set of triangles, consisting only of people associated with crimes who appear in communities/clusters.
 
 [source,cypher]
-CALL algo.triangleCount.stream('MATCH (p:Person)-[:PARTY_TO]->(c:Crime) RETURN id(p) AS id', 'MATCH (p1:Person)-[:KNOWS]-(p2:Person) RETURN id(p1) AS source, id(p2) AS target', {concurrency:4, graph:'cypher'})
-YIELD nodeId, triangles
+----
+CALL gds.triangleCount.stream({nodeQuery:'MATCH (p:Person) WHERE exists { (n)-[:PARTY_TO]->(:Crime) } RETURN id(p) AS id', relationshipQuery:'MATCH (p1:Person)-[:KNOWS]-(p2:Person) RETURN id(p1) AS source, id(p2) AS target'})
+YIELD nodeId, triangleCount as triangles
 MATCH (p:Person)
 WHERE ID(p) = nodeId AND
 triangles > 0
 RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, triangles
 ORDER BY triangles DESC
 LIMIT 5;
+----
 
 
 == Algorithms
@@ -339,31 +383,37 @@ LIMIT 5;
 Looking at the triangles associated to one of the top results from the previous query (Phillip Williamson) shows an interesting group of people who know each other, are related to each other, and/or live with each other.  The names look familiar from our previous Drugs investigation - we have quite a group of potential criminals here.  In addition to the Drugs Crimes there are a lot of Vehicle Crimes associated with this social group.  Perhaps this is a gang which specialises in car theft.  It's interesting to note how the algorithms automatically turned up something we needed to specifically search for earlier (during our Drugs search we had specific Officer and Person starting nodes from our search).
 
 [source,cypher]
+----
 MATCH (p1:Person {nhs_no: '337-28-4424', surname: 'Williamson'})-[k1:KNOWS]-(p2)-[k2:KNOWS]-(p3)-[k3:KNOWS]-(p1)
 WITH *
 MATCH (person)-[pt:PARTY_TO]->(crime) WHERE person IN[p1, p2, p3]
 RETURN *
+----
 
 == Algorithms
 === Betweenness Centrality
 The betweenness algorithm measures centrality in the graph - a way of identifying the most important nodes in a graph.  It does this by identifying nodes which sit on the shortest path between many other nodes and scoring them more highly.  We can see the people here which are potentially important in the graph by using this measure - they sit on the shortest path between the most other people via the 'KNOWS' relationship (ignoring relationships direction, as it's not very important here).  Information and resources tend to flow along the shortest paths in a graph, so this is one good way of identifying central nodes or 'bridge' nodes between communities in the graph.
 
 [source,cypher]
-CALL algo.betweenness.stream('Person', 'KNOWS', {direction: 'both'})
-YIELD nodeId, centrality
+----
+CALL gds.betweenness.stream({nodeProjection:'Person', relationshipProjection:{KNOWS:{type:'KNOWS',orientation:'UNDIRECTED'}}})
+YIELD nodeId, score AS centrality
 MATCH (p:Person)
 WHERE ID(p) = nodeId
-RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, toInt(centrality) AS score
+RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, toInteger(centrality) AS score
 ORDER BY centrality DESC
 LIMIT 10;
-   
+----
+
 == Algorithms
 === Betweenness Centrality
 We can explore the graph for the top result from the previous query (Annie Duncan) out to 3 levels and see how well connected she is.  She does appear to sit between several clusters/communities at the edge of this graph.  We get even more results if we look farther out than 3 hops, but the results would be harder to visualise and take longer to draw on the screen.
 
 [source,cypher]
+----
 MATCH path = (:Person {nhs_no: '863-96-9468', surname: 'Duncan'})-[:KNOWS*..3]-(:Person)
 RETURN path
+----
 
 
 == End of the guide
