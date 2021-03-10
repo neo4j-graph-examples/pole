@@ -17,14 +17,6 @@
 :model: documentation/img/model.jpeg
 :example: documentation/img/example.png
 
-:query: MATCH (l:Location {address:$address})<-[r:OCCURRED_AT]-(c:Crime) +
-RETURN c.date as crimeDate +
-
-:param-name: address
-:param-value: Piccadilly
-:result-column: crimeDate
-:expected-result: 31/08/2017
-
 :todo: false
 image::{icon}[width=100]
 
@@ -43,9 +35,10 @@ image::{model}[]
 image::{example}[width=600]
 
 .Example Query:
-[source,cypher,subs=attributes]
+[source,cypher,role=query-example,param-name=address,param-value=Piccadilly,result-column=crimeDate,expected-result=31/08/2017]
 ----
-{query}
+MATCH (l:Location {address:$address})<-[r:OCCURRED_AT]-(c:Crime)
+RETURN c.date as crimeDate
 ----
 
 === Setup
