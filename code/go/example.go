@@ -30,7 +30,7 @@ func runQuery(uri, database, username, password string) (result []string, err er
 	results, err := session.ReadTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
 		result, err := transaction.Run(
 			`
-			MATCH (l:Location {address:$address})<-[r:OCCURRED_AT]-(c:Crime) 
+			MATCH (l:Location {address:$address})<-[r:OCCURRED_AT]-(c:Crime)
 			RETURN c.date as crimeDate
 			`, map[string]interface{}{
 				"address": "Piccadilly",

@@ -8,7 +8,7 @@ driver = GraphDatabase.driver(
   auth=basic_auth("<USERNAME>", "<PASSWORD>"))
 
 cypher_query = '''
-MATCH (l:Location {address:$address})<-[r:OCCURRED_AT]-(c:Crime) 
+MATCH (l:Location {address:$address})<-[r:OCCURRED_AT]-(c:Crime)
 RETURN c.date as crimeDate
 '''
 
