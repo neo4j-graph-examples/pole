@@ -335,9 +335,23 @@ RETURN path
 ----
 
 == Graph Algorithms
-=== Triangle Count
+=== Graph projection
 
 Lastly, we can have a look at a few graph algorithms and see how they can be applied to our use case.
+Graph algorithms are executed on in-memory graph projections.
+You have the option to project the whole stored graph or only a subset of the graph depending on your requirements.
+
+Run the following query to project Person nodes and KNOWS relationships in the in-memory graph.
+
+[source,cypher]
+----
+CALL gds.graph.project('social', 
+  'Person', 
+  {KNOWS: {orientation:'UNDIRECTED'}})
+----
+
+== Algorithms
+=== Triangle Count
 
 The triangle count algorithm returns 'triangles' of connected nodes - in this case, groups of three Persons where every node in the group 'KNOWS' the others ('A' knows 'B' knows 'C' knows 'A').  This is a common approach when analysing social graphs, where the incidence of such triangles is higher than it would be in a random data set/sample.  This identifies communities or clusters of connectivity in graphs, and might be used in a policing context to identify gangs or other criminal/suspected groups.
 
@@ -345,14 +359,10 @@ Run the following query to identify Person nodes in our graph who are members of
 
 [source,cypher]
 ----
-CALL gds.triangleCount.stream(
-     {nodeProjection:'Person', 
-      relationshipProjection:{KNOWS:{type:'KNOWS',orientation:'UNDIRECTED'}}})
+CALL gds.triangleCount.stream('social')
   YIELD nodeId, triangleCount as triangles
-MATCH (p:Person)
-WHERE ID(p) = nodeId AND
-triangles > 0
-RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, triangles
+WITH gds.util.asNode(nodeId) AS node, triangles
+RETURN node.name AS name, node.surname AS surname, node.nhs_no AS id, triangles
 ORDER BY triangles DESC
 LIMIT 10;
 ----
@@ -376,16 +386,24 @@ RETURN path
 
 The previous query was interesting, but we ran it against the entire graph.  We can use the same algorithm on a sub-graph - for instance, only people who associated with crimes.  This returns a different set of triangles, consisting only of people associated with crimes who appear in communities/clusters.
 
+Run the following query to project a subgraph that contains only people associated with crimes.
+
 [source,cypher]
 ----
-CALL gds.triangleCount.stream(
-     {nodeQuery:'MATCH (p:Person) WHERE exists { (n)-[:PARTY_TO]->(:Crime) } RETURN id(p) AS id', 
-    relationshipQuery:'MATCH (p1:Person)-[:KNOWS]-(p2:Person) RETURN id(p1) AS source, id(p2) AS target'}) 
+CALL gds.graph.project.cypher('crime-associates',
+  'MATCH (p:Person) WHERE exists {(p)-[:PARTY_TO]->(:Crime)} RETURN id(p) AS id',
+  'MATCH (s:Person)-[:KNOWS]-(t:Person) RETURN id(s) AS source, id(t) AS target',
+  {validateRelationships:false})
+----
+
+After you have projected the in-memory graph, you can run the triangle count of the crime associate subgraph by executing the following query.
+
+[source,cypher]
+----
+CALL gds.triangleCount.stream('crime-associates') 
 YIELD nodeId, triangleCount as triangles
-MATCH (p:Person)
-WHERE ID(p) = nodeId AND
-triangles > 0
-RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, triangles
+WITH gds.util.asNode(nodeId) AS node, triangles
+RETURN node.name AS name, node.surname AS surname, node.nhs_no AS id, triangles
 ORDER BY triangles DESC
 LIMIT 5;
 ----
@@ -410,13 +428,10 @@ The betweenness algorithm measures centrality in the graph - a way of identifyin
 
 [source,cypher]
 ----
-CALL gds.betweenness.stream({
-     nodeProjection:'Person', 
-     relationshipProjection:{KNOWS:{type:'KNOWS',orientation:'UNDIRECTED'}}})
+CALL gds.betweenness.stream('social')
 YIELD nodeId, score AS centrality
-MATCH (p:Person)
-WHERE ID(p) = nodeId
-RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, toInteger(centrality) AS score
+WITH gds.util.asNode(nodeId) AS node, centrality
+RETURN node.name AS name, node.surname AS surname, node.nhs_no AS id, toInteger(centrality) AS score
 ORDER BY centrality DESC
 LIMIT 10;
 ----
