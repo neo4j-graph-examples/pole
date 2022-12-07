@@ -6,7 +6,7 @@
 */	
 @import url("//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css");
 
-.imageblock .content img, .image img {max-width: 900px;max-height: 300px;}
+.imageblock .content img, .image img {max-width: 100%;}
 .deck h3, .deck h4 {display: block !important;margin-bottom:8px;margin-top:5px;}
 .listingblock {margin:8px;}
 .pull-bottom {position:relative;bottom:1em;}
@@ -54,7 +54,7 @@
     <br/>
     <div>
       <div class="col-lg-6">
-<img src="http://guides.neo4j.com/sandbox/pole/img/pole_model_visual.jpeg" class="img-responsive">
+<img src="https://guides.neo4j.com/sandbox/pole/img/pole_model_visual.jpeg" class="img-responsive">
 </div>
 <div class="col-lg-6">
 <div class="paragraph">
@@ -236,7 +236,7 @@ LIMIT 15<!--/code--></pre>
 WITH point(l) AS corrie
 MATCH (x:Location)-[:HAS_POSTCODE]-&gt;(p:PostCode),
 (x)&lt;-[:OCCURRED_AT]-(c:Crime)
-WITH x, p, c, distance(point(x), corrie) AS distance
+WITH x, p, c, point.distance(point(x), corrie) AS distance
 WHERE distance &lt; 500
 RETURN x.address AS address, p.code AS postcode, count(c) AS crime_total, collect(distinct(c.type)) AS crime_type, distance
 ORDER BY distance
