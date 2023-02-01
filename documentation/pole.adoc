@@ -390,10 +390,14 @@ Run the following query to project a subgraph that contains only people associat
 
 [source,cypher]
 ----
-CALL gds.graph.project.cypher('crime-associates',
-  'MATCH (p:Person) WHERE exists {(p)-[:PARTY_TO]->(:Crime)} RETURN id(p) AS id',
-  'MATCH (s:Person)-[:KNOWS]-(t:Person) RETURN id(s) AS source, id(t) AS target',
-  {validateRelationships:false})
+MATCH (p0:Person)-[:PARTY_TO]->(:Crime)
+WITH collect(DISTINCT id(p0)) as criminalPartyIds
+MATCH (s:Person)-[r:KNOWS]->(t:Person)
+WHERE (id(s) IN criminalPartyIds) AND (id(t) IN criminalPartyIds)
+WITH gds.alpha.graph.project('crime-associates', s, t,
+    {sourceNodeLabels:labels(s), targetNodeLabels:labels(t)},
+    {relationshipType:type(r)}, {undirectedRelationshipTypes:[type(r)]}) AS g
+RETURN g.graphName AS graph, g.nodeCount AS nodes, g.relationshipCount AS rels
 ----
 
 After you have projected the in-memory graph, you can run the triangle count of the crime associate subgraph by executing the following query.
