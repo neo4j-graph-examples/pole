@@ -1,53 +1,27 @@
 = POLE Data Model Guide
-
 :author: Joe Depeau
 :twitter: @joedepeau
 
 == POLE Model Overview
 
-
-++++
-<div class="col-lg-6">
-++++
-
 [subs=attributes]
-++++
-<img src="{img}/pole_model_visual.jpeg" class="img-responsive">
-++++
 
-++++
-</div>
-++++
-
-++++
-<div class="col-lg-6">
-++++
+image::{img}/pole_model_visual.jpeg[]
 
 This guide will demonstrate how Neo4j can be used with a POLE data model in the context of police and child protection investigations. 
 
 The POLE data model focuses on four basic types of entities and the relationships between them: **P**ersons, **O**bjects, **L**ocations, and **E**vents.  
-
-
-++++
-</div>
-++++
 
 == POLE Model Use Cases
 
 The POLE data model is a standard approach used in policing, investigative, and security use cases.  It can also, however, be applied in other areas.  Typical POLE use cases include:
 
 * Policing
-
 * Counter Terrorism
-
 * Border Control / Immigration
-
 * Child Protection / Social Services
-
 * Missing Persons
-
 * Offender Rehabilitation
-
 * Insurance Fraud Investigations
 
 Graphs are a perfect fit for use cases like these, where it is important to be able to work with highly connected data in real time.  Using a real-time graph helps investigators to be __proactive__ and prevent crime or other incidents, rather than simply being reactive after an incident has occurred.  A POLE graph can also be used to generate insights into patterns of behaviour and incidents, which can inform new approaches and enable more targeted use of limited resources.
@@ -196,7 +170,6 @@ We might also be able to infer some additional relationships in this graph:
 
 * Similarly, given that Alan and Brian know Phillip, is likely that Jack knows Phillip as well?
 
-
 == Vulnerable Persons Investigation
 
 Now we can explore a series of queries to simulate research on 'vulnerable' or 'at risk' individuals in the graph.  This might be especially important in a social services or child protection use case.  Here we have defined 'vulnerable person' as someone who is not themselves associated to a crime, but who knows many people who are.  Run the query below to generate a list of the Top 5 most vulnerable people in the graph.
@@ -230,7 +203,6 @@ LIMIT 5
 
 Try modifying the query to look at 'friends of friends of friends' (3 'KNOWS' relationships out) and see how that changes the results.  
 
-
 == Vulnerable Persons Investigation
 === Exploring a Vulnerable Person's graph
 
@@ -246,7 +218,6 @@ We can see that Anne Freeman has 8 dangerous friends.  Using her ID, this query 
 
 You can also try updating this query to show 'friends of friends' or 'friends of friends of friends' like we did previously.
 
-
 == Vulnerable Persons Investigation
 === Looking for local Dangerous Friends
 
@@ -259,7 +230,6 @@ MATCH (anne:Person {nhs_no: '804-54-6976', surname: 'Freeman'})-[k:KNOWS]-(frien
 (friend)-[ca2:CURRENT_ADDRESS]->(fAddress)-[lia2:LOCATION_IN_AREA]->(area)
 RETURN *
 ----
-
 
 We can see it's only her friend Craig, who she knows through social networks, that lives in the same Area (SK1) as Anne.  Craig has been associated with two Public Order offences.
 
@@ -308,7 +278,6 @@ You should see 5 people who have family members with dangerous friends.
 === Looking for Dangerous Family Friends
 
 The previous query returned a good set of at risk individuals.  However, it's probably not specific enough - it would be more interesting to see this list with an additional requirement that the vulnerable individuals live with their relative who has dangerous friends.
-
 
 [source,cypher]
 ----
@@ -379,7 +348,6 @@ We can see that Patricia Carr knows both Deborah Ford and Jonathan Hunt, and bot
 MATCH path = (p1:Person {nhs_no: '838-45-9343', surname: 'Ford'})-[:KNOWS]-(p2)-[:KNOWS]-(p3)-[:KNOWS]-(p1)
 RETURN path
 ----
-
 
 == Algorithms
 === Triangle Count on a Subgraph

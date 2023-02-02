@@ -6,7 +6,7 @@
 */	
 @import url("//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css");
 
-.imageblock .content img, .image img {max-width: 900px;max-height: 300px;}
+.imageblock .content img, .image img {max-width: 100%;}
 .deck h3, .deck h4 {display: block !important;margin-bottom:8px;margin-top:5px;}
 .listingblock {margin:8px;}
 .pull-bottom {position:relative;bottom:1em;}
@@ -53,16 +53,16 @@
     <h3>POLE Model Overview</h3>
     <br/>
     <div>
-      <div class="col-lg-6">
-<img src="https://guides.neo4j.com/sandbox/pole/img/pole_model_visual.jpeg" class="img-responsive">
+      <div class="imageblock">
+<div class="content">
+<img src="https://guides.neo4j.com/sandbox/pole/img/pole_model_visual.jpeg" alt="pole model visual">
 </div>
-<div class="col-lg-6">
+</div>
 <div class="paragraph">
 <p>This guide will demonstrate how Neo4j can be used with a POLE data model in the context of police and child protection investigations.</p>
 </div>
 <div class="paragraph">
 <p>The POLE data model focuses on four basic types of entities and the relationships between them: <strong>P</strong>ersons, <strong>O</strong>bjects, <strong>L</strong>ocations, and <strong>E</strong>vents.</p>
-</div>
 </div>
 	</div>
   </div>
