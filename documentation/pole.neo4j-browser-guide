@@ -6,7 +6,7 @@
 */	
 @import url("//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css");
 
-.imageblock .content img, .image img {max-width: 100%;}
+.imageblock .content img, .image img {max-width: 900px;max-height: 300px;}
 .deck h3, .deck h4 {display: block !important;margin-bottom:8px;margin-top:5px;}
 .listingblock {margin:8px;}
 .pull-bottom {position:relative;bottom:1em;}
@@ -755,10 +755,14 @@ RETURN path<!--/code--></pre>
 </div>
 <div class="listingblock">
 <div class="content">
-<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->CALL gds.graph.project.cypher('crime-associates',
-  'MATCH (p:Person) WHERE exists {(p)-[:PARTY_TO]-&gt;(:Crime)} RETURN id(p) AS id',
-  'MATCH (s:Person)-[:KNOWS]-(t:Person) RETURN id(s) AS source, id(t) AS target',
-  {validateRelationships:false})<!--/code--></pre>
+<pre mode="cypher"  class="highlight pre-scrollable programlisting cm-s-neo code runnable standalone-example ng-binding" data-lang="cypher" lang="cypher"><!--code class="cypher language-cypher"-->MATCH (p0:Person)-[:PARTY_TO]-&gt;(:Crime)
+WITH collect(DISTINCT id(p0)) as criminalPartyIds
+MATCH (s:Person)-[r:KNOWS]-&gt;(t:Person)
+WHERE (id(s) IN criminalPartyIds) AND (id(t) IN criminalPartyIds)
+WITH gds.alpha.graph.project('crime-associates', s, t,
+    {sourceNodeLabels:labels(s), targetNodeLabels:labels(t)},
+    {relationshipType:type(r)}, {undirectedRelationshipTypes:[type(r)]}) AS g
+RETURN g.graphName AS graph, g.nodeCount AS nodes, g.relationshipCount AS rels<!--/code--></pre>
 </div>
 </div>
 <div class="paragraph">
