@@ -8,6 +8,8 @@
 :data: false
 :use-load-script: false
 :use-dump-file: data/pole-40.dump
+:use-dump-path: data
+:use-dump-file-v5: pole-50
 :zip-file: data/pole.zip
 :use-plugin: graph-algorithms
 :target-db-version: 3.5,4.0
@@ -78,9 +80,18 @@ ifeval::[{use-dump-file} != false]
 
 * Use the neo4j-admin tool to load data from the command line with the command below.
 
+Neo4j 4.x and below
+
 [source,shell,subs=attributes]
 ----
 bin/neo4j-admin load --from {use-dump-file} [--database "database"]
+----
+
+Neo4j 5.x
+
+[source,shell,subs=attributes]
+----
+bin/neo4j-admin database load --from-path={use-dump-path} {use-dump-file-v5} 
 ----
 
 * Upload the dump file to Neo4j Aura via https://console.neo4j.io/#import-instructions
