@@ -1,0 +1,167 @@
+== Explore a POLE dataset
+
+A **P**ersons **O**bjects **L**ocations **Events** datamodel focuses on the relationships between people, objects, locations and events and is a model ideal to be used in law enforcement and intelligence investigations.
+
+image::{img}/pole_model_visual.jpeg[]
+
+In this guide, you will learn:
+
+//* How to import and refactor a POLE dataset ******** Do we need to refactor?
+* How to query the graph and answer questions using Cypher
+* How to refactor your data
+* How to use the built-in Cypher function shortest path
+* How to use aggregation functions in Cypher
+
+In the next section, you will import the POLE dataset into Neo4j and refactor some of its properties.
+
+== POLE dataset and model
+
+[role=NX_TAB_NAV,tab=import]
+pagelaunch::[]
+
+Use the button to import the data into Neo4j.
+
+button::Import POLE[rolw=NX_IMPORT_LOAD,endpoint=https://neo4j-graph-examples.github.io/pole/data/pole-data-importer.zip]
+
+Crime data for this demo was downloaded from public sources (http://data.gov.uk), and is freely provided for download with locations defined to the block or street level and crimes defined by month only (i.e. no day or timestamp).
+This public crime data does not include any sort of information about persons related to crimes, not even as anonymised tokens - it supplies only crime and location data, or in other words only the 'L' and 'E' for the POLE model.
+This demo uses street crime data for Greater Manchester, UK from August 2017.
+
+With the data imported, navigate to the `Query` tab to visualize a representation of the graph model by running the following query:
+
+[source,cypher]
+----
+CALL db.schema.visualization()
+----
+
+[NOTE]
+====
+The arrow button icon:ArrowIcon[] copies the query to the clipboard.
+The play button icon:PlayIcon[] executes the query and returns the results.
+====
+
+You can see that there are 11 different node labels and that these are connected to each other and themselves by various different relationship types.
+
+The `Person` node is especially interesting since it appears to have multiple relationships to itself.
+In the dataset, there are more than 300 different `Person` nodes that are related to _each other_ in different ways and not related to themselves.
+
+You will explore the data further in the next step.
+
+== Crimes committed
+
+Using the data model and Cypher, you can answer questions like:
+
+* What type of crimes were committed?
+* What is the most common crime?
+* What location has the highest crime rate?
+
+The following query looks at the nodes with the label `Crime` and uses the built-in aggregation function `count()` to count the number of crimes committed:
+
+.Number of crimes
+[source,cypher]
+----
+MATCH (c:Crime)
+RETURN labels(c), count(c) AS total
+----
+
+ Not all crime is equal and some crimes are more serious than others.
+ The following query lets you see the different types of crimes committed and the number of times they were committed by using the `count()` function and ordering the results in descending order:
+
+.Different types of crimes
+[source,cypher]
+----
+MATCH (c:Crime)
+RETURN c.type AS crime_type, count (c) AS total
+ORDER BY count(c) DESC
+----
+
+If you recall the graph model, a crime can involve a person, a vehicle or an object.
+
+The following query lets you see which crime(s) involved an object:
+
+.Crimes involving an object
+[source,cypher]
+----
+MATCH (o:Object)-[:INVOLVED_IN]->(c:Crime)
+RETURN c.type AS crime_type, count(c) AS total
+ORDER BY count(c) DESC
+----
+
+[NOTE]
+.Challenge
+====
+Can you rewrite the query to show the crimes that involved a person?
+
+[source,cypher]
+----
+MATCH (o:Object)-[:INVOLVED_IN]->(c:Crime)
+RETURN c.type AS crime_type, count(c) AS total
+ORDER BY count(c) DESC
+----
+
+Hint: If you don't remember the data model, you can always run `CALL db.schema.visualization()` to see it again.
+====
+
+[%collapsible]
+.Reveal the solution
+====
+[source,cypher]
+----
+MATCH (p:Person)-[:PARTY_TO]->(c:Crime)
+RETURN c.type AS crime_type, count(c) AS total
+ORDER by count(c) DESC
+----
+====
+
+In the next section you will refactor properties and look at locations in the graph.
+
+== Locations
+
+The Point data type allows you to use location based functions in Cypher.
+Data Importer doesn't support natively creating Point data types.
+In order to work with locations in the POLE dataset, you need to create a `point` property on the `Location` nodes.
+Currently the `Location` nodes have a `latitude` and `longitude` property and you can use these to create a `point` property.
+
+.Refactor `Location` nodes
+[source,cypher]
+----
+MATCH (l:Location)
+SET l.position = point({latitude: l.latitude, longitude: l.longitude})
+----
+
+Which locations have the highest crime rate?
+The dataset contains a lot of locations, so it is sensible to put a limit on the number of locations returned.
+
+.Locations with the highest crime rate
+[source,cypher]
+----
+MATCH (l:Location)<-[:OCCURRED_AT]-(:Crime)
+RETURN l.address AS locale, l.postcode AS postcode, count(l) AS total
+ORDER BY count(l) DESC
+LIMIT 20
+----
+
+This query matches locations with crimes returns the `address` and `postcode` properties of the `Location`nodes` and counts all non-null occurences crimes that occurred at that location and orders the results in descending order.
+The `LIMIT` clause limits the number of results returned to 20 and these are ordered by the number of crimes committed at that location in descending order.
+
+If you turn the query around and look at the number of crimes committed in the vicinity of a particular address, you can use the newly refactored `point`property of the `Location` nodes.
+
+You can pick any address as your starting point, but for this query you will use an address that may sound familiar.
+
+.Crimes committed in the vicinity of Coronation Street
+[source,cypher]
+----
+MATCH (l:Location {address: '1 Coronation Street'})
+WITH point(l) AS corrie
+MATCH (x:Location)<-[:OCCURRED_AT]-(c:Crime)
+WITH x, c, point.distance(point(x), corrie) AS distance
+WHERE distance < 500
+RETURN x.address AS address, count(c) AS crime_total, collect(distinct(c.type)) AS crime_type, distance
+ORDER BY distance
+LIMIT 10
+----
+
+This is a complex query that pipelines the results from one part of the query to the next.
+The first part of the query matches the `Location` node with the address `1 Coronation Street` and the
+`WITH` clause takes the `point` of that location and assigns it to the variable `corrie` and pipes `corrie` to the next part of the query.
+The second `MATCH` clause matches other locations (x) where crimes (c) were committed and then uses the spation function `point.distance`to calculate the distance between the various other locations and `1 Coronation Street`.
