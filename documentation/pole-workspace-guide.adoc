@@ -7,11 +7,12 @@ image::{img}/model.jpeg[float=right,width=200px]
 
 In this guide, you will learn:
 
-//* How to import and refactor a POLE dataset ******** Do we need to refactor?
 * How to query the graph and answer questions using Cypher
 * How to refactor your data
-* How to use the built-in Cypher function shortest path
 * How to use aggregation functions in Cypher
+* How to use the built-in Cypher function shortest path
+
+
 
 In the next section, you will import the POLE dataset into Neo4j.
 
