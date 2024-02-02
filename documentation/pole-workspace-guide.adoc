@@ -1,7 +1,7 @@
 == Explore a POLE dataset
 :images: {img}
 
-A **P**ersons **O**bjects **L**ocations **Events** datamodel focuses on the relationships between people, objects, locations and events and is a model ideal to be used in law enforcement and intelligence investigations.
+A **P**ersons **O**bjects **L**ocations **E**vents datamodel focuses on the relationships between people, objects, locations and events and is a model ideal to be used in law enforcement and intelligence investigations.
 
 image::{img}/model.jpeg[float=right,width=200px]
 
@@ -9,9 +9,9 @@ In this guide, you will learn:
 
 * How to query the graph and answer questions using Cypher
 * How to refactor your data
-* How to use aggregation functions in Cypher
+* How to use spatial and aggregation functions in Cypher
 * How to use the built-in Cypher function shortest path
-
+* How to do conditional matches using the `WHERE` clause
 
 
 In the next section, you will import the POLE dataset into Neo4j.
@@ -23,10 +23,10 @@ pagelaunch::[]
 
 Use the button to import the data into Neo4j.
 
-button::Import POLE[role=NX_IMPORT_LOAD,endpoint=https://neo4j-graph-examples.github.io/pole/data/pole-data-importer.zip]
+button::Import POLE[role=NX_IMPORT_LOAD,endpoint= https://github.com/AlexicaWright/pole/raw/workspace-guide/data/pole-data-importer.zip]
 
 Crime data for this demo was downloaded from public sources (http://data.gov.uk), and is freely provided for download with locations defined to the block or street level and crimes defined by month only (i.e. no day or timestamp).
-This public crime data does not include any sort of information about persons related to crimes, not even as anonymised tokens - it supplies only crime and location data, or in other words only the 'L' and 'E' for the POLE model.
+This public crime data does not include any sort of information about persons related to crimes, not even as anonymized tokens - it supplies only crime and location data, or in other words only the 'L' and 'E' for the POLE model.
 This demo uses street crime data for Greater Manchester, UK from August 2017.
 
 With the data imported, navigate to the `Query` tab to visualize a representation of the graph model by running the following query:
