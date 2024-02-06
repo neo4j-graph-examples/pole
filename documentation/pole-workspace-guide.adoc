@@ -7,6 +7,7 @@ image::{img}/model.jpeg[float=right,width=200px]
 
 In this guide, you will learn:
 
+* How crime data can be modelled in a graph
 * How to query the graph and answer questions using Cypher
 * How to refactor your data
 * How to use spatial and aggregation functions in Cypher
@@ -25,8 +26,7 @@ Use the button to import the data into Neo4j.
 
 button::Import POLE[role=NX_IMPORT_LOAD,endpoint= https://github.com/AlexicaWright/pole/raw/workspace-guide/data/pole-data-importer.zip]
 
-Crime data for this demo was downloaded from public sources (http://data.gov.uk), and is freely provided for download with locations defined to the block or street level and crimes defined by month only (i.e. no day or timestamp).
-This public crime data does not include any sort of information about persons related to crimes, not even as anonymized tokens - it supplies only crime and location data, or in other words only the 'L' and 'E' for the POLE model.
+The public crime data does not include any sort of identifiable information about persons related to crimes, not even as anonymized tokens.
 This demo uses street crime data for Greater Manchester, UK from August 2017.
 
 With the data imported, navigate to the `Query` tab to visualize a representation of the graph model by running the following query:
@@ -36,6 +36,8 @@ With the data imported, navigate to the `Query` tab to visualize a representatio
 CALL db.schema.visualization()
 ----
 
+image::{img}/viz.png[float=right,width=200px]
+
 [NOTE]
 ====
 The arrow button icon:ArrowIcon[] copies the query to the clipboard.
@@ -44,7 +46,7 @@ The play button icon:PlayIcon[] executes the query and returns the results.
 
 You can see that there are 11 different node labels and that these are connected to each other and themselves by various different relationship types.
 
-The `Person` node is especially interesting since it appears to have multiple relationships to itself.
+The `Person` node is especially interesting since it has multiple relationships to itself.
 In the dataset, there are more than 300 different `Person` nodes that are related to _each other_ in different ways and not related to themselves.
 
 You will explore the data further in the next step.
@@ -80,21 +82,22 @@ ORDER BY count(c) DESC
 ----
 
 If you recall the graph model, a crime can involve a person, a vehicle or an object.
+An object in this dataset is most often evidence and maybe you can guess what these objects may be?
 
-The following query lets you see which crime(s) involved an object:
+The following query lets you see which crime(s) involved on object and a what the object is:
 
 .Crimes involving an object
 [source,cypher]
 ----
 MATCH (o:Object)-[:INVOLVED_IN]->(c:Crime)
-RETURN c.type AS crime_type, count(c) AS total
+RETURN c.type AS crime_type, count(c) AS total, o.description AS object
 ORDER BY count(c) DESC
 ----
 
 [NOTE]
 .Challenge
 ====
-Can you rewrite the query to show the crimes that involved a person instead of an object?
+Can you rewrite the query to show the crimes that involved a person instead of an object, using the `Person` node?
 
 [source,cypher]
 ----
@@ -145,7 +148,7 @@ ORDER BY count(l) DESC
 LIMIT 20
 ----
 
-This query matches locations with crimes returns the `address` and `postcode` properties of the `Location`nodes` and counts all non-null occurences crimes that occurred at that location and orders the results in descending order.
+This query matches locations with crimes returns the `address` and `postcode` properties of the `Location` nodes and counts all non-null occurences of crimes committed at that location and orders the results in descending order.
 The `LIMIT` clause limits the number of results returned.
 
 In the next section, you'll use the newly refactored `point` property and Cypher spatial functions.
@@ -155,26 +158,53 @@ In the next section, you'll use the newly refactored `point` property and Cypher
 Instead of multiple addresses, you can find out how much and what types of crime were committed in the vicinity of one address.
 You can pick any address as your starting point, but for this query you will use an address that may sound familiar.
 
-.Crimes committed in the vicinity of Coronation Street
+This is a complex task, so you can break it up.
+Start with finding the starting point and give it an alias (`corrie`):
+
 [source,cypher]
 ----
 MATCH (l:Location {address: '1 Coronation Street'})
-WITH point(l) AS corrie
+RETURN l.position AS corrie
+----
+
+The next step is to locate where the crimes were committed and calculate the distance to Coronation Street:
+
+[source,cypher]
+----
+MATCH (l:Location {address: '1 Coronation Street'})
+WITH l.position AS corrie
 MATCH (x:Location)<-[:OCCURRED_AT]-(c:Crime)
-WITH x, c, point.distance(point(x), corrie) AS distance
+RETURN x.address as crime_location, point.distance(x.position, corrie) AS distanceFromCoronationSt
+----
+Since you are interested in crimes committed in the _vicinity_ of Coronation Street, it makes sense to filter the results and leave out locations farther than 500 meters.
+Additionally, it would interesting to see what types of crimes they are.
+The next step is therefore to filter out all criminal locations > 500 meters and aggregate the crime types in the return clause:
+
+[source,cypher]
+----
+MATCH (l:Location {address: '1 Coronation Street'})
+WITH l.position AS corrie
+MATCH (x:Location)<-[:OCCURRED_AT]-(c:Crime)
+WITH x, c, point.distance(x.position, corrie) AS distance
+WHERE distance < 500
+RETURN x.address AS address, count(c) AS crime_total, collect(c.type) AS crime_type, distance
+----
+
+The last things you need to do is to order the criminal addresses by their distance from Coronation Street and return only the ten closest addresses:
+
+[source,cypher]
+----
+MATCH (l:Location {address: '1 Coronation Street'})
+WITH l.position AS corrie
+MATCH (x:Location)<-[:OCCURRED_AT]-(c:Crime)
+WITH x, c, point.distance(x.position, corrie) AS distance
 WHERE distance < 500
 RETURN x.address AS address, count(c) AS crime_total, collect(c.type) AS crime_type, distance
 ORDER BY distance
 LIMIT 10
 ----
 
-This is a complex query that pipelines the results from one part of the query to the next.
-The first part of the query matches the `Location` node with the address `1 Coronation Street` and the
-`WITH` clause takes the `point` of that location and assigns it to the variable `corrie` and pipes `corrie` to the next part of the query.
-
-The second `MATCH` clause matches other locations (x) where crimes (c) were committed and then uses the spatial function `point.distance`to calculate the distance between the various other locations and `1 Coronation Street` and limits the distance to less than 500 meters.
-
-The aggregation function `collect()` is used to return a list of values.
+Now you have a neat table of locations, how many and what type of crimes committed, and the distance to 1 Coronation Street.
 
 [NOTE]
 .Challenge
@@ -236,7 +266,7 @@ RETURN c.type AS type, count(c) AS number
 ORDER BY count(c) DESC
 ----
 
-This should tell you that Officer Larive is currently three Drug crimes
+This should tell you that Officer Larive is currently investigating three Drug crimes
 ====
 
 If you use this information, you can run the following query to bring back only cases under investigation on the drug category.
@@ -247,7 +277,7 @@ MATCH (c:Crime {type:'Drugs', last_outcome: 'Under investigation'})-[i:INVESTIGA
 return *
 ----
 
-You can click on the crime nodes in the graph to expand them and see if any of them share anything else.
+You can double-click on the crime nodes in the graph to expand them and see if any of them share anything else.
 Can you see any new connections after expanding?
 
 Whereas you could keep manually clicking and expanding on the graph, you could also write some queries that are more targeted.
