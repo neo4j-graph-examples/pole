@@ -204,7 +204,7 @@ ORDER BY distance
 LIMIT 10
 ----
 
-Now you have a neat table of locations, how many and what type of crimes committed, and the distance to 1 Coronation Street.
+Now you have a neat table of locations, how many and what type of crimes were committed, and the distance to 1 Coronation Street.
 
 [NOTE]
 .Challenge
