@@ -24,7 +24,7 @@ pagelaunch::[]
 
 Use the button to import the data into Neo4j.
 
-button::Import POLE[role=NX_IMPORT_LOAD,endpoint= https://github.com/AlexicaWright/pole/raw/workspace-guide/data/pole-data-importer.zip]
+button::Import POLE[role=NX_IMPORT_LOAD,endpoint=https://neo4j-graph-examples.github.io/pole/data/pole-data-importer.zip]
 
 The public crime data does not include any sort of identifiable information about persons related to crimes, not even as anonymized tokens.
 This demo uses street crime data for Greater Manchester, UK from August 2017.
