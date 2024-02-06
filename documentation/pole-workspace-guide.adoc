@@ -1,0 +1,449 @@
+== Explore a POLE dataset
+:images: {img}
+
+A **P**ersons **O**bjects **L**ocations **E**vents datamodel focuses on the relationships between people, objects, locations and events and is a model ideal to be used in law enforcement and intelligence investigations.
+
+image::{img}/model.jpeg[float=right,width=200px]
+
+In this guide, you will learn:
+
+* How crime data can be modelled in a graph
+* How to query the graph and answer questions using Cypher
+* How to refactor your data
+* How to use spatial and aggregation functions in Cypher
+* How to use the built-in Cypher function shortest path
+* How to do conditional matches using the `WHERE` clause
+
+
+In the next section, you will import the POLE dataset into Neo4j.
+
+== POLE dataset and model
+
+[role=NX_TAB_NAV,tab=import]
+pagelaunch::[]
+
+Use the button to import the data into Neo4j.
+
+button::Import POLE[role=NX_IMPORT_LOAD,endpoint=https://neo4j-graph-examples.github.io/pole/data/pole-data-importer.zip]
+
+The public crime data does not include any sort of identifiable information about persons related to crimes, not even as anonymized tokens.
+This demo uses street crime data for Greater Manchester, UK from August 2017.
+
+With the data imported, navigate to the `Query` tab to visualize a representation of the graph model by running the following query:
+
+[source,cypher]
+----
+CALL db.schema.visualization()
+----
+
+image::{img}/viz.png[float=right,width=200px]
+
+[NOTE]
+====
+The arrow button icon:ArrowIcon[] copies the query to the clipboard.
+The play button icon:PlayIcon[] executes the query and returns the results.
+====
+
+You can see that there are 11 different node labels and that these are connected to each other and themselves by various different relationship types.
+
+The `Person` node is especially interesting since it has multiple relationships to itself.
+In the dataset, there are more than 300 different `Person` nodes that are related to _each other_ in different ways and not related to themselves.
+
+You will explore the data further in the next step.
+
+== Crimes committed
+
+Using the data model and Cypher, you can answer questions like:
+
+* What type of crimes were committed?
+* What is the most common crime?
+* What location has the highest crime rate?
+
+You can also look for people and how they relate to each other and to crimes, as you will see in the later steps of this guide.
+
+The following query looks at the nodes with the label `Crime` and uses the built-in aggregation function `count()` to count the number of crimes committed:
+
+.Number of crimes
+[source,cypher]
+----
+MATCH (c:Crime)
+RETURN labels(c), count(c) AS total
+----
+
+ Not all crime is equal and some crimes are more serious than others.
+ The following query lets you see the different types of crimes committed and the number of times they were committed by using the `count()` function and ordering the results in descending order:
+
+.Different types of crimes
+[source,cypher]
+----
+MATCH (c:Crime)
+RETURN c.type AS crime_type, count (c) AS total
+ORDER BY count(c) DESC
+----
+
+If you recall the graph model, a crime can involve a person, a vehicle or an object.
+An object in this dataset is most often evidence and maybe you can guess what these objects may be?
+
+The following query lets you see which crime(s) involved on object and a what the object is:
+
+.Crimes involving an object
+[source,cypher]
+----
+MATCH (o:Object)-[:INVOLVED_IN]->(c:Crime)
+RETURN c.type AS crime_type, count(c) AS total, o.description AS object
+ORDER BY count(c) DESC
+----
+
+[NOTE]
+.Challenge
+====
+Can you rewrite the query to show the crimes that involved a person instead of an object, using the `Person` node?
+
+[source,cypher]
+----
+MATCH (o:Object)-[:INVOLVED_IN]->(c:Crime)
+RETURN c.type AS crime_type, count(c) AS total
+ORDER BY count(c) DESC
+----
+
+Hint: If you don't remember the data model, you can always run `CALL db.schema.visualization()` to see it again.
+====
+
+[%collapsible]
+.Reveal the solution
+====
+[source,cypher]
+----
+MATCH (p:Person)-[:PARTY_TO]->(c:Crime)
+RETURN c.type AS crime_type, count(c) AS total
+ORDER by count(c) DESC
+----
+====
+
+In the next section you will refactor properties and look at locations in the graph.
+
+== Locations
+
+The `point` data type allows you to use location based functions in Cypher.
+Data Importer doesn't support natively creating `point` data types.
+In order to work with locations in the POLE dataset, you need to create a `point` property on the `Location` nodes.
+Currently the `Location` nodes have a `latitude` and `longitude` property and you can use these to create a `point` property.
+
+.Refactor `Location` nodes
+[source,cypher]
+----
+MATCH (l:Location)
+SET l.position = point({latitude: l.latitude, longitude: l.longitude})
+----
+
+Which locations have the highest crime rate?
+The dataset contains a lot of locations, so it is sensible to put a limit on the number of locations returned.
+
+.Locations with the highest crime rate
+[source,cypher]
+----
+MATCH (l:Location)<-[:OCCURRED_AT]-(:Crime)
+RETURN l.address AS locale, l.postcode AS postcode, count(l) AS total
+ORDER BY count(l) DESC
+LIMIT 20
+----
+
+This query matches locations with crimes returns the `address` and `postcode` properties of the `Location` nodes and counts all non-null occurences of crimes committed at that location and orders the results in descending order.
+The `LIMIT` clause limits the number of results returned.
+
+In the next section, you'll use the newly refactored `point` property and Cypher spatial functions.
+
+== Distance
+
+Instead of multiple addresses, you can find out how much and what types of crime were committed in the vicinity of one address.
+You can pick any address as your starting point, but for this query you will use an address that may sound familiar.
+
+This is a complex task, so you can break it up.
+Start with finding the starting point and give it an alias (`corrie`):
+
+[source,cypher]
+----
+MATCH (l:Location {address: '1 Coronation Street'})
+RETURN l.position AS corrie
+----
+
+The next step is to locate where the crimes were committed and calculate the distance to Coronation Street:
+
+[source,cypher]
+----
+MATCH (l:Location {address: '1 Coronation Street'})
+WITH l.position AS corrie
+MATCH (x:Location)<-[:OCCURRED_AT]-(c:Crime)
+RETURN x.address as crime_location, point.distance(x.position, corrie) AS distanceFromCoronationSt
+----
+Since you are interested in crimes committed in the _vicinity_ of Coronation Street, it makes sense to filter the results and leave out locations farther than 500 meters.
+Additionally, it would interesting to see what types of crimes they are.
+The next step is therefore to filter out all criminal locations > 500 meters and aggregate the crime types in the return clause:
+
+[source,cypher]
+----
+MATCH (l:Location {address: '1 Coronation Street'})
+WITH l.position AS corrie
+MATCH (x:Location)<-[:OCCURRED_AT]-(c:Crime)
+WITH x, c, point.distance(x.position, corrie) AS distance
+WHERE distance < 500
+RETURN x.address AS address, count(c) AS crime_total, collect(c.type) AS crime_type, distance
+----
+
+The last things you need to do is to order the criminal addresses by their distance from Coronation Street and return only the ten closest addresses:
+
+[source,cypher]
+----
+MATCH (l:Location {address: '1 Coronation Street'})
+WITH l.position AS corrie
+MATCH (x:Location)<-[:OCCURRED_AT]-(c:Crime)
+WITH x, c, point.distance(x.position, corrie) AS distance
+WHERE distance < 500
+RETURN x.address AS address, count(c) AS crime_total, collect(c.type) AS crime_type, distance
+ORDER BY distance
+LIMIT 10
+----
+
+Now you have a neat table of locations, how many and what type of crimes were committed, and the distance to 1 Coronation Street.
+
+[NOTE]
+.Challenge
+====
+Can you find the address farthest away from 1 Coronation St and find out what types of crimes have been committed there?
+
+Keep in mind that you don't want to limit the distance in this query.
+====
+
+[%collapsible]
+.Reveal the solution
+====
+The address farthest away from 1 Coronation St is 156 The Beacons and the crime types are "Violence and sexual offences" and "Drugs".
+This is a query to find this information:
+[source,cypher]
+----
+MATCH (l:Location {address: '1 Coronation Street'})
+WITH point(l) AS corrie
+MATCH (x:Location)<-[:OCCURRED_AT]-(c:Crime)
+WITH x, c, point.distance(point(x), corrie) AS distance
+RETURN x.address AS address, count(c) AS crime_total, collect(c.type) AS crime_type, distance
+ORDER BY distance DESC
+LIMIT 1
+----
+====
+
+In the next section, you will look at people in the graph.
+
+== Find people
+
+There are two different types of people in the graph, `Person` and `Officer`.
+A person can be party to a crime or related to (in one or more hops) a person party to a crime and a crime can be investigated by an officer.
+
+The following query shows what one Inspector Morse is working on:
+
+.Crimes investigated by Inspector Morse
+[source,cypher]
+----
+MATCH (o:Officer {surname: 'Morse'})<-[i:INVESTIGATED_BY]-(c:Crime)
+RETURN *
+----
+
+[NOTE]
+.Challenge
+====
+Write a Cypher query to find a different officer named Devy Larive and the crimes he's _currently_ investigating.
+Find out which type of crime is most common among his open cases.
+
+Hint: The `Crime` nodes have a property called `last_outcome` and you are interested in the ones that are `Under investigation`.
+====
+
+[%collapsible]
+.Reveal the solution
+====
+[source,cypher]
+----
+MATCH (c:Crime {last_outcome: 'Under investigation'})-[i:INVESTIGATED_BY]->(o:Officer {surname: 'Larive'})
+RETURN c.type AS type, count(c) AS number
+ORDER BY count(c) DESC
+----
+
+This should tell you that Officer Larive is currently investigating three Drug crimes
+====
+
+If you use this information, you can run the following query to bring back only cases under investigation on the drug category.
+
+[source,cypher]
+----
+MATCH (c:Crime {type:'Drugs', last_outcome: 'Under investigation'})-[i:INVESTIGATED_BY]->(o:Officer {surname: 'Larive'})
+return *
+----
+
+You can double-click on the crime nodes in the graph to expand them and see if any of them share anything else.
+Can you see any new connections after expanding?
+
+Whereas you could keep manually clicking and expanding on the graph, you could also write some queries that are more targeted.
+
+In the next section, you will look closer at paths.
+
+== Find paths
+
+In the last section you probably found that two of the crimes were connected by a person named Jack Powell and the third crime was connected to a person named Raymond Walker.
+If you looked even closer at the crime nodes, you saw that the crimes associated with Jack had a charge of cannabis possession and Raymond's had a charge of cannabis production.
+
+Perhaps Jack Powell and Raymond Walker are part of a larger network?
+
+The following Cypher query finds all the shortest paths between Jack and Raymond using the built-in algorithm _allShortestPaths_:
+
+.All shortest paths
+[source,cypher]
+----
+MATCH path = allshortestpaths((p1:Person {name:'Jack', surname:'Powell'})-[:KNOWS|KNOWS_LW|KNOWS_SN|FAMILY_REL|KNOWS_PHONE*..3]-(p2:Person{name:'Raymond', surname:'Walker'}))
+RETURN path
+----
+
+The result looks like a small social group of six people who are closely related, some in the same family.
+
+Since you know that Jack and Raymond are connected by Officer Larive, maybe there is a larger network.
+Consider the following query and see if you can think of what insights you can draw from the results:
+
+.Other related people
+[source,cypher]
+----
+MATCH path = (:Officer {surname:'Larive'})<-[:INVESTIGATED_BY]-(:Crime {type: 'Drugs'})<-[:PARTY_TO]-(:Person)-[:KNOWS*..3]-(:Person)-[:PARTY_TO]->(:Crime {type: 'Drugs'})
+RETURN path
+----
+
+The query finds people associated with drug crimes investigated by Officer Larive that are with three hops away from each other along the `:KNOWS` relationship.
+
+Note that there are other relationships present in the returned graph, apart from `:KNOWS`, `:PARTY_TO`, and `:INVESTIGATED_BY` that are specified in the query.
+Why do you think that is?
+
+A clue would be that wherever there is different type of relationship, there is also one of the specified relationships.
+
+[NOTE]
+.Challenge
+====
+Does a similar network exist in any of the cases Inspector Morse is investigating?
+====
+
+[%collapsible]
+.Reveal the solution
+====
+The answer is no since there are no `Person` nodes connected to Inspector Morse.
+One way you can check this is by the following query:
+
+[source,cypher]
+----
+MATCH path = (:Officer {surname:'Morse'})<-[:INVESTIGATED_BY]-(:Crime)<-[:PARTY_TO]-(:Person)
+RETURN path
+----
+====
+
+In the next section, you will use the `WHERE` clause to find vulnerable people.
+
+== Conditional matches
+
+Not all people in the dataset are directly related to a crime, but they may know many people who are.
+People in the middle of a network of criminals without themselves being criminal can be considered as vulnerable and at risk.
+Finding them can be of interest for social services or child protection.
+
+To find the most vulnerable people in the graph, consider the following query:
+
+.Find people NOT directly related to a crime
+[source,cypher]
+----
+MATCH (p:Person)-[:KNOWS]-(friend)-[:PARTY_TO]->(:Crime)
+WHERE NOT (p:Person)-[:PARTY_TO]->(:Crime)
+RETURN p.name AS name, p.surname AS surname, count(distinct friend) AS dangerousFriends
+ORDER BY dangerousFriends DESC
+LIMIT 5
+----
+
+The `WHERE NOT` clause filters out all person nodes with a direct relation to a crime.
+In a real scenario, you would want more information about the person, such as an ID number.
+
+[NOTE]
+.Challenge
+====
+Sometimes even friends of friends can have influence on a person.
+Can you modify the previous query to include friends up to 3 hops away in the result?
+====
+
+[%collapsible]
+.Reveal the solution
+====
+[source,cypher]
+MATCH (p:Person)-[:KNOWS*1..2]-(friend)-[:PARTY_TO]->(:Crime)
+WHERE NOT (p:Person)-[:PARTY_TO]->(:Crime)
+RETURN p.name AS name, p.surname AS surname, count(distinct friend) AS dangerousFriends
+ORDER BY dangerousFriends DESC
+LIMIT 5
+====
+
+You can expand a vulnerable person's graph with the following query:
+
+.Vulnerable person's friends
+[source,cypher]
+----
+MATCH path = (:Location)<-[:CURRENT_ADDRESS]-(:Person {name: 'Anne', surname: 'Freeman'})-[:KNOWS*1..2]-(:Person)-[:PARTY_TO]->(:Crime)
+RETURN path
+----
+
+In the next section, you will look for dangerous family friends.
+
+== Fine-tune your matches
+
+You can fine-tune your query to look for vulnerable people based on their family relationships instead of just the generic `KNOWS` (as you can see in the graph, `Person` are connected with double relationships, `KNOWS` and a more specific one).
+
+The following query finds a person not directly related to a crime, who has a non-criminal family member with dangerous friends:
+
+.Dangerous family friends
+[source,cypher]
+----
+MATCH (p:Person)-[:FAMILY_REL]-(relative)-[:KNOWS]-(famFriend)-[:PARTY_TO]->(:Crime)
+WHERE NOT (p:Person)-[:PARTY_TO]->(:Crime) AND
+ NOT (relative)-[:PARTY_TO]->(:Crime)
+RETURN p.name AS name, p.surname AS surname, count(DISTINCT famFriend) AS DangerousFamilyFriends
+ORDER BY DangerousFamilyFriends DESC
+LIMIT 5
+----
+
+Third parties can have varied influence on vulnerable individuals, but the degree of influence could increase if the vulnerable person lives with the relative who has dangerous friends.
+
+[NOTE]
+.Challenge
+====
+Can you complete this query to find the top five vulnerable people who live at the same address as their non-criminal relative with dangerous friends?
+Replace the relationship type(s) and node label on line 2.
+
+[source,cypher]
+----
+MATCH (p:Person)-[:FAMILY_REL]-(relative)-[:KNOWS]-(famFriend)-[:PARTY_TO]->(:Crime),
+(p)-[a relationship here]->(a node here)<-[a relationship]-(relative)
+WHERE NOT (p:Person)-[:PARTY_TO]->(:Crime) AND
+ NOT (relative)-[:PARTY_TO]->(:Crime)
+RETURN p.name AS name, p.surname AS surname, p.nhs_no AS id, count(DISTINCT famFriend) AS DangerousFamilyFriends
+ORDER BY DangerousFamilyFriends DESC
+LIMIT 5
+----
+====
+
+[%collapsible]
+.Reveal the solution
+====
+Line 2 of the query should look like this:
+[source,cypher]
+----
+(p)-[:CURRENT_ADDRESS]->(:Location)<-[:CURRENT_ADDRESS]-(relative)
+----
+====
+
+In the next step, you will find more resources to continue learning about Neo4j and the Cypher query language.
+
+== Next steps
+
+Congratulations on completing this guide!
+
+You have seen some ways you can use Neo4j and Cypher to explore a POLE dataset for various use cases.
+
+You can continue your learning journey with the link:link:https://neo4j.com/graphacademy[Neo4j GraphAcademy - completely free online courses^] or see the link:https://neo4j.com/docs/cypher-manual/current/introduction/[Cypher Manual] for more information on Cypher.
+
