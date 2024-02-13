@@ -1,7 +1,7 @@
-== Explore a POLE dataset
+== Crime Investigation
 :images: {img}
 
-A **P**ersons **O**bjects **L**ocations **E**vents datamodel focuses on the relationships between people, objects, locations and events and is a model ideal to be used in law enforcement and intelligence investigations.
+A **P**ersons **O**bjects **L**ocations **E**vents data model focuses on the relationships between people, objects, locations and events and is a model ideal to be used in law enforcement and intelligence investigations.
 
 image::{img}/model.jpeg[float=right,width=200px]
 
@@ -445,5 +445,12 @@ Congratulations on completing this guide!
 
 You have seen some ways you can use Neo4j and Cypher to explore a POLE dataset for various use cases.
 
-You can continue your learning journey with the link:link:https://neo4j.com/graphacademy[Neo4j GraphAcademy - completely free online courses^] or see the link:https://neo4j.com/docs/cypher-manual/current/introduction/[Cypher Manual] for more information on Cypher.
+You can continue your Neo4j learning journey with these resources:
 
+link:https://neo4j.com/graphacademy[GraphAcademy - completely free online courses^]
+
+link:https://neo4j.com/docs/getting-started/cypher-intro/#_getting_started_with_cypher[Getting started with Cypher guide^]
+
+link:https://neo4j.com/docs/cypher-manual/current/introduction/[Cypher Manual^].
+
+The source code and data dumps for this guide are available in the github repository - link:https://github.com/neo4j-graph-examples/pole[neo4j-graph-examples/pole^].
